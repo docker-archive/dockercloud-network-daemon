@@ -1,0 +1,12 @@
+machine:
+  services:
+    - docker
+checkout:
+  post:
+    - sed "s/<EMAIL>/$DOCKER_EMAIL/;s/<AUTH>/$DOCKER_AUTH/" < .dockercfg.template > ~/.dockercfg
+deployment:
+  master:
+    branch: master
+    commands:
+      - docker build -t tutum.co/admin/weave-daemon:latest .
+      - docker push tutum.co/admin/weave-daemon:latest
