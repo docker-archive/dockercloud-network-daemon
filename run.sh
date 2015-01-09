@@ -10,4 +10,4 @@ else
     touch ./weave_launched
 fi
 
-python monitor.py
+exec python monitor.py
