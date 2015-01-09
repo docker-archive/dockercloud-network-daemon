@@ -1,7 +1,7 @@
 import docker
 import thread
 import json
-import os
+import subprocess
 
 def join_weave(container_id):
     try:
@@ -16,8 +16,12 @@ def join_weave(container_id):
                     break
         if cidr:
             print "%s:adding to weave with IP %s" % (container_id, cidr)
-            _, stdout_stderr = os.popen4("/weave attach %s %s" % (cidr, container_id))
-            print "%s:%s" % (container_id, stdout_stderr.read()),
+            cmd = "/weave attach %s %s" % (cidr, container_id)
+            p = subprocess.Popen(args=cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+            if p.wait():
+                print "%s:%s" % (container_id, p.stderr.read()),
+            else:
+                print "%s:%s" % (container_id, p.stdout.read()),
         else:
             print "%s:cannot find the IP address to add to weave" % container_id
     except Exception as e:
