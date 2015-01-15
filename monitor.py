@@ -3,7 +3,8 @@ import thread
 import json
 import subprocess
 
-def join_weave(container_id):
+
+def join_weave(docker_client, container_id):
     try:
         inspect = docker_client.inspect_container(container_id)
 
@@ -26,9 +27,22 @@ def join_weave(container_id):
         print "%s:%s" % (container_id, e)
 
 
+def init_attach(docker_client):
+    containers = docker_client.containers(quiet=True)
+    for container in containers:
+        container_id = container.get('Id', '')
+        if container:
+            thread.start_new_thread(join_weave, (docker_client, container_id))
+
+
 if __name__ == "__main__":
 
     docker_client = docker.Client()
+
+    print "attaching existing running containers to weave network"
+    init_attach(docker_client)
+
+    print "monitoring docker event"
     output = docker_client.events()
     for line in output:
         try:
@@ -37,6 +51,6 @@ if __name__ == "__main__":
             if status == "start":
                 container_id = event.get("id", "")
                 print "%s:%s" % (container_id, status)
-                thread.start_new_thread(join_weave, (container_id,))
+                thread.start_new_thread(join_weave, (docker_client, container_id))
         except Exception as e:
             print e

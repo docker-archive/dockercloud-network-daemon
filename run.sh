@@ -11,6 +11,6 @@ else
     fi
 fi
 
-echo "start monitoring docker event"
+echo "start weave daemon script"
 
 exec python monitor.py
