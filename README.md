@@ -17,9 +17,9 @@ tutum/weave-daemon
 **Arguments**
 
 ```
-    WEAVE_LAUNCH    argument for "weave launch" command, possible values:
-                    "", when you launch the first weave router
-                    "<ip/hostname>", when you want weave join other's network
-                    "**None**", do not run "weave launch"
-    WEAVE_PASSORD   password for weave network, empty by default
+    WEAVE_LAUNCH      argument for "weave launch" command, possible values:
+                      "", when you launch the first weave router
+                      "<ip/hostname>", when you want weave to join other's network
+                      "**None**", do not run "weave launch"
+    WEAVE_PASSWORD    password for weave network, empty by default
 ```
