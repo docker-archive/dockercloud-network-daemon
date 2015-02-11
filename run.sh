@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -e
+
+echo "Testing if docker is connectable"
+docker version > /dev/nil
+
 if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
     echo "WEAVE_LAUNCH is **None**. Do not run weave launch"
 else
