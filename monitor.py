@@ -19,13 +19,13 @@ def join_weave(docker_client, container_id):
                     cidr = env_var[len("TUTUM_IP_ADDRESS="):]
                     break
         if cidr:
-            logger.info("%s:adding to weave with IP %s" % (container_id, cidr))
+            logger.info("%s: adding to weave with IP %s" % (container_id, cidr))
             cmd = "/weave attach %s %s" % (cidr, container_id)
             p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
             if not p.wait():
                 logger.info("%s:%s" % (container_id, p.stderr.read()))
         else:
-            logger.info("%s:cannot find the IP address to add to weave" % container_id)
+            logger.info("%s: cannot find the IP address to add to weave" % container_id)
     except Exception as e:
         logger.exception("%s:%s" % (container_id, e))
 
@@ -55,7 +55,8 @@ if __name__ == "__main__":
             status = event.get("status", "")
             if status == "start":
                 container_id = event.get("id", "")
-                logger.info("%s:%s" % (container_id, status))
+                image = event.get("from","")
+                logger.info("%s: (from %s) %s" % (container_id, image, status))
                 thread.start_new_thread(join_weave, (docker_client, container_id))
         except Exception as e:
             logger.exception(e)
