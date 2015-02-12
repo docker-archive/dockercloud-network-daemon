@@ -18,4 +18,4 @@ fi
 
 echo "start weave daemon script"
 
-exec python monitor.py
+exec python -u /monitor.py
