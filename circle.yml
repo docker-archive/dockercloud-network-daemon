@@ -7,9 +7,3 @@ checkout:
 test:
   override:
     - docker build -t sut .
-deployment:
-  master:
-    branch: master
-    commands:
-      - docker tag sut tutum.co/admin/weave-daemon:latest
-      - docker push tutum.co/admin/weave-daemon:latest
