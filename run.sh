@@ -1,19 +1,25 @@
 #!/bin/bash
 set -e
 
-echo "Testing if docker binary is available"
-docker version > /dev/null
+echo "=> Using docker binary:"
+docker version
 
-if docker ps | awk '{print $2}' | grep -q -F 'zettio/weave'; then
-	echo "Weave router is already running"
-else
-	if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
-		echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
-	else
-		echo "Running: weave launch ${WEAVE_LAUNCH}"
-		/weave launch ${WEAVE_LAUNCH}
-	fi
+WEAVE_IMAGES=$(docker images | grep zettio/weave | wc -l)
+if [ ${WEAVE_IMAGES} -eq "0" ]; then
+    echo "=> Setting up weave images"
+    /weave setup
 fi
 
-echo "Starting peer discovery daemon"
-exec python -u /monitor.py
+if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
+    echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
+else
+    echo "=> Running: weave launch \"${WEAVE_LAUNCH}\""
+    /weave launch ${WEAVE_LAUNCH} || true
+    sleep 2
+fi
+
+echo "=> Current weave router status"
+/weave status
+
+echo "=> Starting peer discovery daemon"
+exec python -u /app/monitor.py $@
