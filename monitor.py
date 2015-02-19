@@ -59,8 +59,7 @@ def container_attach_thread():
         try:
             event = json.loads(line)
             logger.debug("Processing event: %s", event)
-            status = event.get("status", "")
-            if status == "start":
+            if event.get("status") == "start" and not event.get("from").startswith("zettio/weave"):
                 thread.start_new_thread(join_weave, (event.get("id"),))
         except Exception as e:
             logger.exception(e)
