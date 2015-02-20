@@ -18,7 +18,7 @@ POLLING_INTERVAL = max(os.getenv("POLLING_INTERVAL", 30), 5)
 TUTUM_AUTH = os.getenv("TUTUM_AUTH")
 
 
-def join_weave(container_id):
+def attach_container(container_id):
     try:
         inspect = docker_client.inspect_container(container_id)
         cidr = None
@@ -51,7 +51,7 @@ def container_attach_thread():
     containers = docker_client.containers(quiet=True)
     for container in containers:
         if container:
-            thread.start_new_thread(join_weave, (container.get('Id'),))
+            attach_container(container.get('Id'))
 
     # Listen for events and attach new containers
     output = docker_client.events()
@@ -60,7 +60,7 @@ def container_attach_thread():
             event = json.loads(line)
             logger.debug("Processing event: %s", event)
             if event.get("status") == "start" and not event.get("from").startswith("zettio/weave"):
-                thread.start_new_thread(join_weave, (event.get("id"),))
+                attach_container(event.get("id"))
         except Exception as e:
             logger.exception(e)
 
