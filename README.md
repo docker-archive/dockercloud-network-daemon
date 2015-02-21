@@ -3,7 +3,7 @@ tutum/weave-daemon
 
 ```
     docker run -d \
-      --net=host \
+      --net host \
       --privileged \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -v /usr/bin/docker:/usr/local/bin/docker:r \
