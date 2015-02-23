@@ -13,6 +13,13 @@ fi
 if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
     echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
 else
+    echo "=> Stopping any existing weave routers"
+    OLD_ROUTER_ID=$(docker ps --no-trunc | grep "zettio/weave" | awk '{print $1}')
+    if [ ! -z "${OLD_ROUTER_ID}" ]; then
+        docker stop ${OLD_ROUTER_ID}
+        sleep 5
+        docker rm ${OLD_ROUTER_ID} || true
+    fi
     echo "=> Running: weave launch \"${WEAVE_LAUNCH}\""
     if [ -z "${WEAVE_PASSWORD}" ]; then
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
