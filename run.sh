@@ -14,7 +14,12 @@ if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
     echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
 else
     echo "=> Running: weave launch \"${WEAVE_LAUNCH}\""
-    /weave launch ${WEAVE_LAUNCH} || true
+    if [ -z "${WEAVE_PASSWORD}" ]; then
+        echo "!! WARNING: No \$WEAVE_PASSWORD set!"
+        /weave launch -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
+    else
+        /weave launch ${WEAVE_LAUNCH} || true
+    fi
     sleep 2
 fi
 
