@@ -14,5 +14,6 @@ ADD . /app
 RUN chmod +x /app/run.sh
 
 ENV WEAVE_LAUNCH **None**
+ENV VERSION 0.9.0
 
 ENTRYPOINT ["/app/run.sh"]

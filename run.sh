@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "=> Using weave version: $VERSION"
+
 echo "=> Using docker binary:"
 docker version
 
