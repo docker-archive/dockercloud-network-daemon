@@ -14,5 +14,6 @@ ADD . /app
 RUN chmod +x /app/run.sh
 
 ENV WEAVE_LAUNCH **None**
+ENV VERSION git-b76e97ac2426
 
 ENTRYPOINT ["/app/run.sh"]
