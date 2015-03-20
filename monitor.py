@@ -16,6 +16,7 @@ docker_client = docker.Client(version="1.14")
 TUTUM_HOST = os.getenv("TUTUM_HOST", "https://dashboard.tutum.co")
 POLLING_INTERVAL = max(os.getenv("POLLING_INTERVAL", 30), 5)
 TUTUM_AUTH = os.getenv("TUTUM_AUTH")
+TUTUM_NODE_FQDN = os.getenv("TUTUM_NODE_FQDN")
 
 
 def attach_container(container_id):
@@ -70,25 +71,29 @@ def discover_peers_thread():
 
     while True:
         try:
-            r = requests.get("%s/api/v1/node/?state=Deployed" % TUTUM_HOST,
+            r = requests.get("%s/api/v1/node/?state=Deployed&limit=100" % TUTUM_HOST,
                              headers={"Authorization": TUTUM_AUTH})
             r.raise_for_status()
             nodes = r.json()["objects"]
             for node in nodes:
-                if node["public_ip"] not in peer_cache:
-                    tries = 0
-                    while tries < 3:
-                        logger.info("%s: connecting to newly discovered peer: %s" %
-                                    (node["external_fqdn"], node["public_ip"]))
-                        cmd = "/weave connect %s" % node["public_ip"]
-                        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
-                        if p.wait():
-                            logger.error("%s: %s" % (node["external_fqdn"], p.stderr.read()))
-                            tries += 1
-                            time.sleep(1)
-                        else:
-                            break
-                    peer_cache.append(node["public_ip"])
+                if node["external_fqdn"] == TUTUM_NODE_FQDN:
+                    continue
+                if node["public_ip"] in peer_cache:
+                    continue
+
+                tries = 0
+                while tries < 3:
+                    logger.info("%s: connecting to newly discovered peer: %s" %
+                                (node["external_fqdn"], node["public_ip"]))
+                    cmd = "/weave connect %s" % node["public_ip"]
+                    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                    if p.wait():
+                        logger.error("%s: %s" % (node["external_fqdn"], p.stderr.read()))
+                        tries += 1
+                        time.sleep(1)
+                    else:
+                        break
+                peer_cache.append(node["public_ip"])
         except:
             logger.exception("Exception on peer discovery thread")
         time.sleep(POLLING_INTERVAL)
