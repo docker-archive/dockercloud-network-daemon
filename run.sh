@@ -31,5 +31,7 @@ fi
 echo "=> Current weave router status"
 /weave status
 
+docker logs -f weave &
+
 echo "=> Starting peer discovery daemon"
 exec python -u /app/monitor.py $@
