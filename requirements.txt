@@ -4,3 +4,4 @@ requests==2.4.3
 six==1.9.0
 websocket-client==0.23.0
 wsgiref==0.1.2
+python-tutum==0.14.0
