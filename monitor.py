@@ -110,9 +110,8 @@ def connect_to_peer(public_ip, external_fqdn="unknown"):
         time.sleep(1)
 
 
-def on_tutum_message(msg):
+def event_handler(event):
     try:
-        event = json.loads(msg)
         if event.get("type", "") == "node" and event.get("state", "") == "Deployed":
             discover_peers()
     except Exception as e:
@@ -129,6 +128,6 @@ if __name__ == "__main__":
     if TUTUM_AUTH:
         logger.info("Detected Tutum API access - starting peer discovery thread")
         events = tutum.TutumEvents()
-        events.on_message(on_tutum_message)
+        events.on_message(event_handler)
         thread.start_new_thread(events.run_forever, ())
     container_attach_thread()
