@@ -10,15 +10,10 @@ import time
 import docker
 import tutum
 from docker.errors import APIError
-import requests
-import requests.exceptions
 
 
 logger = logging.getLogger("weave-daemon")
 docker_client = docker.Client(version="auto")
-TUTUM_HOST = os.getenv("TUTUM_HOST", "https://dashboard.tutum.co")
-POLLING_INTERVAL = max(os.getenv("POLLING_INTERVAL", 30), 5)
-TUTUM_AUTH = os.getenv("TUTUM_AUTH")
 TUTUM_NODE_FQDN = os.getenv("TUTUM_NODE_FQDN")
 
 peer_cache = []
@@ -76,15 +71,12 @@ def discover_peers():
     tries = 0
     while True:
         try:
-            r = requests.get("%s/api/v1/node/?state=Deployed&limit=100" % TUTUM_HOST,
-                             headers={"Authorization": TUTUM_AUTH})
-            r.raise_for_status()
-            nodes = r.json()["objects"]
+            nodes = tutum.Node.list(state="Deployed")
             for node in nodes:
-                if node["external_fqdn"] == TUTUM_NODE_FQDN or node["public_ip"] in peer_cache:
+                if node.external_fqdn == TUTUM_NODE_FQDN or node.public_ip in peer_cache:
                     continue
-                connect_to_peer(node["public_ip"], node["external_fqdn"])
-                peer_cache.append(node["public_ip"])
+                connect_to_peer(node)
+                peer_cache.append(node.public_ip)
             break
         except Exception as e:
             tries += 1
@@ -93,15 +85,15 @@ def discover_peers():
         time.sleep(1)
 
 
-def connect_to_peer(public_ip, external_fqdn="unknown"):
+def connect_to_peer(node):
     tries = 0
     while True:
         logger.info("%s: connecting to newly discovered peer: %s" %
-                    (external_fqdn, public_ip))
-        cmd = "/weave connect %s" % public_ip
+                    (node.external_fqdn, node.public_ip))
+        cmd = "/weave connect %s" % node.public_ip
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         if p.wait():
-            logger.error("%s: %s" % (external_fqdn, p.stderr.read()))
+            logger.error("%s: %s" % (node.external_fqdn, p.stderr.read()))
             tries += 1
             if tries > 3:
                 raise Exception("Unable to 'weave connect' to new peer: %s" % p.stderr.read())
@@ -125,7 +117,7 @@ if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s | %(levelname)s | %(message)s')
     logging.getLogger("weave-daemon").setLevel(logging.DEBUG if args.debug else logging.INFO)
 
-    if TUTUM_AUTH:
+    if os.getenv("TUTUM_AUTH"):
         logger.info("Detected Tutum API access - starting peer discovery thread")
         events = tutum.TutumEvents()
         events.on_message(event_handler)
