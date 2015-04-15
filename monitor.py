@@ -122,4 +122,5 @@ if __name__ == "__main__":
         events = tutum.TutumEvents()
         events.on_message(event_handler)
         thread.start_new_thread(events.run_forever, ())
+        discover_peers()
     container_attach_thread()
