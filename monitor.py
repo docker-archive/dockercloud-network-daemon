@@ -15,6 +15,7 @@ from docker.errors import APIError
 logger = logging.getLogger("weave-daemon")
 docker_client = docker.Client(version="auto")
 TUTUM_NODE_FQDN = os.getenv("TUTUM_NODE_FQDN")
+WEAVE_CMD = "/weave --local"
 
 peer_cache = []
 
@@ -33,7 +34,7 @@ def attach_container(container_id):
             tries = 0
             while tries < 3:
                 logger.info("%s: adding to weave with IP %s" % (container_id, cidr))
-                cmd = "/weave attach %s %s" % (cidr, container_id)
+                cmd = "%s attach %s %s" % (WEAVE_CMD, cidr, container_id)
                 p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 if p.wait():
                     logger.error("%s: %s" % (container_id, p.stderr.read() or p.stdout.read()))
@@ -60,7 +61,7 @@ def container_attach_thread():
         try:
             event = json.loads(line)
             logger.debug("Processing event: %s", event)
-            if event.get("status") == "start" and not event.get("from").startswith("zettio/weave"):
+            if event.get("status") == "start" and not event.get("from").startswith("weaveworks/weave"):
                 attach_container(event.get("id"))
         except Exception as e:
             logger.exception(e)
@@ -90,7 +91,7 @@ def connect_to_peer(node):
     while True:
         logger.info("%s: connecting to newly discovered peer: %s" %
                     (node.external_fqdn, node.public_ip))
-        cmd = "/weave connect %s" % node.public_ip
+        cmd = "%s connect %s" % (WEAVE_CMD, node.public_ip)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         if p.wait():
             logger.error("%s: %s" % (node.external_fqdn, p.stderr.read() or p.stdout.read()))

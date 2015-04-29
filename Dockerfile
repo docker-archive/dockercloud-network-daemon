@@ -4,7 +4,7 @@ MAINTAINER Feng Honglin <hfeng@tutum.co>
 ENV VERSION 0.10.0
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends iptables python-pip && \
+    apt-get install -y --no-install-recommends iptables python-pip ethtool conntrack iproute2 util-linux && \
     curl -Lo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave && \
     chmod +x weave && \
     apt-get clean && \
