@@ -36,7 +36,7 @@ def attach_container(container_id):
                 cmd = "/weave attach %s %s" % (cidr, container_id)
                 p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 if p.wait():
-                    logger.error("%s: %s" % (container_id, p.stderr.read()))
+                    logger.error("%s: %s" % (container_id, p.stderr.read() or p.stdout.read()))
                     tries += 1
                     time.sleep(1)
                 else:
@@ -93,10 +93,10 @@ def connect_to_peer(node):
         cmd = "/weave connect %s" % node.public_ip
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         if p.wait():
-            logger.error("%s: %s" % (node.external_fqdn, p.stderr.read()))
+            logger.error("%s: %s" % (node.external_fqdn, p.stderr.read() or p.stdout.read()))
             tries += 1
             if tries > 3:
-                raise Exception("Unable to 'weave connect' to new peer: %s" % p.stderr.read())
+                raise Exception("Unable to 'weave connect' to new peer: %s" % p.stderr.read() or p.stdout.read())
         else:
             break
         time.sleep(1)
