@@ -37,7 +37,7 @@ def attach_container(container_id):
             while tries < 3:
                 logger.info("%s: adding to weave with IP %s" % (container_id, cidr))
                 cmd = WEAVE_CMD + ["attach", cidr, container_id]
-                p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
                 if p.wait():
                     logger.error("%s: %s" % (container_id, p.stderr.read() or p.stdout.read()))
                     tries += 1
@@ -75,7 +75,10 @@ def discover_peers():
     while True:
         try:
             peer_ips = set(NODE_REGEX.findall(subprocess.check_output(WEAVE_CMD + ["status"])))
-            peer_ips.remove(TUTUM_NODE_IP)
+            try:
+                peer_ips.remove(TUTUM_NODE_IP)
+            except KeyError:
+                pass
             node_ips = set([i.public_ip for i in tutum.Node.list(state="Deployed")])
             for node_ip in node_ips - peer_ips:
                 connect_to_peer(node_ip)
@@ -94,7 +97,7 @@ def connect_to_peer(node_ip):
     while True:
         logger.info("connecting to newly discovered peer: %s" % node_ip)
         cmd = WEAVE_CMD + ["connect", node_ip]
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         if p.wait():
             logger.error("%s: %s" % (node_ip, p.stderr.read() or p.stdout.read()))
             tries += 1
@@ -110,7 +113,7 @@ def forget_peer(node_ip):
     while True:
         logger.info("forgetting peer: %s" % node_ip)
         cmd = WEAVE_CMD + ["forget", node_ip]
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
         if p.wait():
             logger.error("%s: %s" % (node_ip, p.stderr.read() or p.stdout.read()))
             tries += 1
@@ -130,7 +133,6 @@ def event_handler(event):
 
 
 if __name__ == "__main__":
-    global TUTUM_NODE_IP
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action="store_true")
     args = parser.parse_args()
@@ -140,7 +142,7 @@ if __name__ == "__main__":
     logger.info("Trying to resolve %s", TUTUM_NODE_FQDN)
     while not TUTUM_NODE_IP:
         try:
-            TUTUM_NODE_IP = socket.gethostbyname(TUTUM_NODE_FQDN)
+            TUTUM_NODE_IP = socket.getaddrinfo(TUTUM_NODE_FQDN, 0)[0][4][0]
         except socket.gaierror:
             time.sleep(1)
             continue
