@@ -16,10 +16,10 @@ from docker.errors import APIError
 
 logger = logging.getLogger("weave-daemon")
 docker_client = docker.Client(version="auto")
-TUTUM_NODE_FQDN = os.getenv("TUTUM_NODE_FQDN")
-TUTUM_NODE_IP = None
+TUTUM_NODE_API_URI = os.getenv("TUTUM_NODE_API_URI")
+TUTUM_NODE_PUBLIC_IP = None
 WEAVE_CMD = ["/weave", "--local"]
-NODE_REGEX = re.compile("\[([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):6783\]")
+peer_ips = set([])
 
 
 def attach_container(container_id):
@@ -70,20 +70,17 @@ def container_attach_thread():
 
 
 def discover_peers():
-    global TUTUM_NODE_IP
+    global TUTUM_NODE_PUBLIC_IP, peer_ips
     tries = 0
     while True:
         try:
-            peer_ips = set(NODE_REGEX.findall(subprocess.check_output(WEAVE_CMD + ["status"])))
-            try:
-                peer_ips.remove(TUTUM_NODE_IP)
-            except KeyError:
-                pass
-            node_ips = set([i.public_ip for i in tutum.Node.list(state="Deployed")])
+            node_ips = set([i.public_ip for i in tutum.Node.list(state="Deployed")
+                            if i.public_ip != TUTUM_NODE_PUBLIC_IP])
             for node_ip in node_ips - peer_ips:
                 connect_to_peer(node_ip)
             for node_ip in peer_ips - node_ips:
                 forget_peer(node_ip)
+            peer_ips = node_ips
             break
         except Exception as e:
             tries += 1
@@ -139,14 +136,8 @@ if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, format='%(asctime)s | %(levelname)s | %(message)s')
     logging.getLogger("weave-daemon").setLevel(logging.DEBUG if args.debug else logging.INFO)
 
-    logger.info("Trying to resolve %s", TUTUM_NODE_FQDN)
-    while not TUTUM_NODE_IP:
-        try:
-            TUTUM_NODE_IP = socket.getaddrinfo(TUTUM_NODE_FQDN, 0)[0][4][0]
-        except socket.gaierror:
-            time.sleep(1)
-            continue
-    logger.info("%s resolved to %s", TUTUM_NODE_FQDN, TUTUM_NODE_IP)
+    TUTUM_NODE_PUBLIC_IP = tutum.Utils.fetch_by_resource_uri(TUTUM_NODE_API_URI).public_ip
+    logger.info("This node IP is %s", TUTUM_NODE_PUBLIC_IP)
 
     if os.getenv("TUTUM_AUTH"):
         logger.info("Detected Tutum API access - starting peer discovery thread")
