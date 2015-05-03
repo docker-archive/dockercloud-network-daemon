@@ -1,19 +1,15 @@
-FROM tutum/curl:trusty
-MAINTAINER Feng Honglin <hfeng@tutum.co>
+FROM alpine
+MAINTAINER support@tutum.co
 
 ENV VERSION 0.10.0
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends iptables python-pip ethtool conntrack iproute2 util-linux && \
-    curl -Lo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave && \
-    chmod +x weave && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN ["apk", "add", "--update", "ethtool", "conntrack-tools", "curl", "iptables", "iproute2", "util-linux", "python", "py-pip"]
+RUN curl -sSLo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave && \
+    chmod +x weave
 
 ADD requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 ADD . /app
-RUN chmod +x /app/run.sh
 
 ENV WEAVE_LAUNCH **None**
 
