@@ -6,7 +6,7 @@ echo "=> Using weave version: $VERSION"
 echo "=> Using docker binary:"
 docker version
 
-WEAVE_IMAGES=$(docker images | grep zettio/weave | wc -l)
+WEAVE_IMAGES=$(docker images | grep weaveworks/weave | wc -l)
 if [ ${WEAVE_IMAGES} -eq "0" ]; then
     echo "=> Setting up weave images"
     /weave --local setup
@@ -34,4 +34,4 @@ echo "=> Current weave router status"
 docker logs -f weave &
 
 echo "=> Starting peer discovery daemon"
-exec python -u /app/monitor.py $@
+exec go run /src/github.com/tutumcloud/weave-daemon/main.go $@
