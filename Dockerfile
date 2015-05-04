@@ -1,19 +1,19 @@
-FROM tutum/curl:trusty
-MAINTAINER Feng Honglin <hfeng@tutum.co>
+FROM alpine
+MAINTAINER support@tutum.co
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends iptables python-pip && \
-    curl -Lo weave https://github.com/zettio/weave/releases/download/v0.9.0/weave && \
-    chmod +x weave && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+ENV VERSION 0.10.0
 
-ADD requirements.txt /app/requirements.txt
-RUN pip install -r /app/requirements.txt
-ADD . /app
-RUN chmod +x /app/run.sh
+RUN ["apk", "add", "--update","go", "git" ,"ethtool", "conntrack-tools", "curl", "iptables", "iproute2", "util-linux", "python", "py-pip"]
+RUN curl -sSLo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave && \
+    chmod +x weave
+
+RUN mkdir -p /go/src /go/bin && chmod -R 777 /go
+ENV GOPATH /go
+ENV PATH /go/bin:$PATH
+RUN go get github.com/tutumcloud/go-tutum/tutum
+WORKDIR /go
+ADD . /go/src/github.com/tutumcloud/weave-daemon
 
 ENV WEAVE_LAUNCH **None**
-ENV VERSION git-b76e97ac2426
 
-ENTRYPOINT ["/app/run.sh"]
+ENTRYPOINT ["/go/src/github.com/tutumcloud/weave-daemon/run.sh"]
