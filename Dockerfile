@@ -10,7 +10,7 @@ RUN curl -sSLo weave https://github.com/weaveworks/weave/releases/download/v$VER
 RUN mkdir -p /go/src /go/bin && chmod -R 777 /go
 ENV GOPATH /go
 ENV PATH /go/bin:$PATH
-RUN go get github.com/tutumcloud/go-tutum/tutum && go get github.com/docker/docker/pkg/archive
+RUN go get github.com/tutumcloud/go-tutum/tutum && go get github.com/fsouza/go-dockerclient
 
 WORKDIR /go
 ADD . /go/src/github.com/tutumcloud/weave-daemon
