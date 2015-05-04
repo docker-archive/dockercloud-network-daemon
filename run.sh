@@ -6,7 +6,7 @@ echo "=> Using weave version: $VERSION"
 echo "=> Using docker binary:"
 docker version
 
-WEAVE_IMAGES=$(docker images | grep zettio/weave | wc -l)
+WEAVE_IMAGES=$(docker images | grep weaveworks/weave | wc -l)
 if [ ${WEAVE_IMAGES} -eq "0" ]; then
     echo "=> Setting up weave images"
     /weave setup
