@@ -1,7 +1,7 @@
 FROM alpine
 MAINTAINER support@tutum.co
 
-ENV VERSION 0.10.0
+ENV VERSION 0.10.1
 
 RUN ["apk", "add", "--update","go", "git" ,"ethtool", "conntrack-tools", "curl", "iptables", "iproute2", "util-linux", "python", "py-pip"]
 RUN curl -sSLo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave && \
