@@ -51,6 +51,7 @@ func DiscoverPeers(ch chan string) {
 			if !found {
 				diff1 = append(diff1, s1)
 			}
+			ch <- fmt.Sprintln(diff1)
 			for _, i := range diff1 {
 				connectToPeers(i)
 			}
@@ -71,6 +72,7 @@ func DiscoverPeers(ch chan string) {
 			if !found {
 				diff2 = append(diff2, s1)
 			}
+			ch <- fmt.Sprintln(diff2)
 			for _, i := range diff2 {
 				forgetPeers(i)
 			}
@@ -92,11 +94,8 @@ func DiscoverPeers(ch chan string) {
 
 func connectToPeers(node_ip string) {
 	tries := 0
-	finish := false
+
 	for {
-		if finish == true {
-			break
-		}
 		log.Printf("connecting to newly discovered peer: %s", node_ip)
 		cmd := exec.Command("/weave", "--local", "connect", node_ip)
 		stdout, err := cmd.StdoutPipe()
@@ -114,17 +113,16 @@ func connectToPeers(node_ip string) {
 		}
 
 		if err := cmd.Wait(); err != nil {
+			log.Fatal(err)
+		} else {
 			log.Printf("%s: %s %s", node_ip, stdout, stderr)
 			tries++
 			if tries > 3 {
-				finish = true
-				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
+				log.Fatalf("Unable to 'weave connect: %s %s", stdout, stderr)
 			}
-			break
-			time.Sleep(1)
-		} else {
-			break
 		}
+		break
+		time.Sleep(1)
 	}
 }
 
