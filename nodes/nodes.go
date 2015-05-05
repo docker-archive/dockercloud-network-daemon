@@ -110,8 +110,6 @@ func connectToPeers(node_ip string) {
 
 		if err := cmd.Start(); err != nil {
 			log.Fatal(err)
-		} else {
-			break
 		}
 
 		if err := cmd.Wait(); err != nil {
