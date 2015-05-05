@@ -1,6 +1,15 @@
 machine:
   services:
     - docker
+deployment:
+  staging:
+    branch: staging
+    commands:
+      - ./build.sh
+      - docker build -t weave-daemon .
+      - docker tag weave-daemon tutum/weave-daemon:staging
+      - docker login -u $DOCKER_USER -p $DOCKER_PASS -e a@a.com
+      - docker push tutum/weave-daemon:staging
 checkout:
   post:
     - sed "s/<EMAIL>/$DOCKER_EMAIL/;s/<AUTH>/$DOCKER_AUTH/" < .dockercfg.template > ~/.dockercfg
