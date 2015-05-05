@@ -9,9 +9,6 @@ chmod +x weave
 
 echo "=> Building the binary"
 docker run \
-  -e CGO_ENABLED=true \
-  -e LDFLAGS='-extldflags "-static"' \
-  -e COMPRESS_BINARY=true \
   -v $(pwd):/src \
   -v /var/run/docker.sock:/var/run/docker.sock \
   centurylink/golang-builder \
