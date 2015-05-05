@@ -28,17 +28,19 @@ func DiscoverPeers(ch chan string) {
 				log.Fatal(err)
 			}
 		}
+
 		for i := range nodeList.Objects {
 			state := nodeList.Objects[i].State
 
 			if state == "Deployed" { //or Unreachable
 				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
 					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
+					//ch <- fmt.Sprintln(node_ips)
 				}
 			}
 		}
 
-		ch <- fmt.Sprintf("Discovering peers")
+		//ch <- fmt.Sprintf("Discovering peers")
 		var diff1 []string
 		for _, s1 := range node_ips {
 			found := false
@@ -51,14 +53,16 @@ func DiscoverPeers(ch chan string) {
 			if !found {
 				diff1 = append(diff1, s1)
 			}
+			//ch <- fmt.Sprintln(diff1)
 			for _, i := range diff1 {
+				log.Println(i)
 				connectToPeers(i)
 			}
 		}
-		ch <- fmt.Sprintln(node_ips)
-		ch <- fmt.Sprintln(peer_ips)
+		//ch <- fmt.Sprintln(node_ips)
+		//ch <- fmt.Sprintln(peer_ips)
 
-		ch <- fmt.Sprintf("Forgetting peers")
+		//ch <- fmt.Sprintf("Forgetting peers")
 		var diff2 []string
 		for _, s1 := range peer_ips {
 			found := false
@@ -82,42 +86,43 @@ func DiscoverPeers(ch chan string) {
 				}
 			}
 		}*/
-		//peer_ips = node_ips
-		ch <- fmt.Sprintln(node_ips)
-		ch <- fmt.Sprintln(peer_ips)
+		peer_ips = node_ips
 		break
 	}
 	ch <- fmt.Sprint("STOP DISCOVER FUNCTION")
 }
 
 func connectToPeers(node_ip string) {
-	//tries := 0
-	log.Printf("connecting to newly discovered peer: %s", node_ip)
-	cmd := exec.Command("/weave", "--local", "connect", node_ip)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	tries := 0
+	for {
 
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
+		log.Printf("connecting to newly discovered peer: %s", node_ip)
+		cmd := exec.Command("/weave", "--local", "connect", node_ip)
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-	}
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := cmd.Wait(); err != nil {
-		log.Printf("%s: %s %s", node_ip, stdout, stderr)
-		/*tries++
+		if err := cmd.Start(); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := cmd.Wait(); err != nil {
+			log.Printf("%s: %s %s", node_ip, stdout, stderr)
+			tries++
 			if tries > 3 {
 				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
 			}
 		} else {
-			break*/
+			break
+		}
 	}
-	//}
+	fmt.Sprint("STOP CONNECT FUNCTION")
 }
 
 func forgetPeers(node_ip string) {

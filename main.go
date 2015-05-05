@@ -157,10 +157,11 @@ func main() {
 	log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
 	if os.Getenv("TUTUM_AUTH") != "" {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
-		log.Println("Discovering peers")
+		log.Println("NODE")
 		ch := make(chan string)
 		go discovering(ch)
 		log.Printf("%s", <-ch)
 	}
+	log.Println("CONTAINER")
 	ContainerAttachThread(client)
 }
