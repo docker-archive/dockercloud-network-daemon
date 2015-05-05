@@ -92,6 +92,7 @@ func DiscoverPeers(ch chan string) {
 
 func connectToPeers(node_ip string) {
 	tries := 0
+	finish := false
 	for {
 		log.Printf("connecting to newly discovered peer: %s", node_ip)
 		cmd := exec.Command("/weave", "--local", "connect", node_ip)
@@ -113,11 +114,14 @@ func connectToPeers(node_ip string) {
 			log.Printf("%s: %s %s", node_ip, stdout, stderr)
 			tries++
 			if tries > 3 {
+				finish = true
 				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
 			}
-			time.Sleep(1)
-		} else {
+			if finish == true {
+				break
+			}
 			break
+			time.Sleep(1)
 		}
 	}
 }
