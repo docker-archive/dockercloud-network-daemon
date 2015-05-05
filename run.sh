@@ -34,4 +34,4 @@ echo "=> Current weave router status"
 docker logs -f weave &
 
 echo "=> Starting peer discovery daemon"
-exec go run /go/src/github.com/tutumcloud/weave-daemon/main.go $@
+exec /weave-daemon $@
