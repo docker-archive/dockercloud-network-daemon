@@ -10,3 +10,11 @@ deployment:
       - docker tag weave-daemon tutum/weave-daemon:staging
       - docker login -u $DOCKER_USER -p $DOCKER_PASS -e a@a.com
       - docker push tutum/weave-daemon:staging
+  master:
+    branch: master
+    commands:
+      - ./build.sh
+      - docker build -t weave-daemon .
+      - docker tag weave-daemon tutum/weave-daemon
+      - docker login -u $DOCKER_USER -p $DOCKER_PASS -e a@a.com
+      - docker push tutum/weave-daemon
