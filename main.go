@@ -130,6 +130,7 @@ func main() {
 	cert := fmt.Sprintf("%s/cert.pem", path)
 	key := fmt.Sprintf("%s/key.pem", path)
 	client, err := docker.NewTLSClient(endpoint, cert, key, ca)*/
+	log.Println("Running main.go")
 
 	endpoint := "unix:///var/run/docker.sock"
 	client, err := docker.NewClient(endpoint)
