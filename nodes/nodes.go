@@ -31,7 +31,7 @@ func DiscoverPeers(ch chan string) {
 		for i := range nodeList.Objects {
 			state := nodeList.Objects[i].State
 
-			if state == "Deployed" {
+			if state == "Deployed" { //or Unreachable
 				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
 					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
 				}
@@ -39,21 +39,54 @@ func DiscoverPeers(ch chan string) {
 		}
 
 		ch <- fmt.Sprintf("Discovering peers")
-		for _, i := range node_ips {
+		var diff1 []string
+		for _, s1 := range node_ips {
+			found := false
+			for _, s2 := range peer_ips {
+				if s1 == s2 {
+					found = true
+					break
+				}
+			}
+			if !found {
+				diff1 = append(diff1, s1)
+			}
+			for _, i := range diff1 {
+				connectToPeers(i)
+			}
+		}
+
+		/*for _, i := range node_ips {
 			for _, ip := range peer_ips {
 				if i != ip {
 					connectToPeers(i)
 				}
 			}
-		}
+		}*/
 		ch <- fmt.Sprintf("Forgetting peers")
-		for _, ip := range peer_ips {
+		var diff2 []string
+		for _, s1 := range peer_ips {
+			found := false
+			for _, s2 := range node_ips {
+				if s1 == s2 {
+					found = true
+					break
+				}
+			}
+			if !found {
+				diff2 = append(diff2, s1)
+			}
+			for _, i := range diff2 {
+				forgetPeers(i)
+			}
+		}
+		/*for _, ip := range peer_ips {
 			for _, i := range node_ips {
 				if ip != i {
 					forgetPeers(ip)
 				}
 			}
-		}
+		}*/
 		peer_ips = node_ips
 		break
 	}
