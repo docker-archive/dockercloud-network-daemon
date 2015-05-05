@@ -55,14 +55,9 @@ func DiscoverPeers(ch chan string) {
 				connectToPeers(i)
 			}
 		}
+		ch <- fmt.Sprintln(node_ips)
+		ch <- fmt.Sprintln(peer_ips)
 
-		/*for _, i := range node_ips {
-			for _, ip := range peer_ips {
-				if i != ip {
-					connectToPeers(i)
-				}
-			}
-		}*/
 		ch <- fmt.Sprintf("Forgetting peers")
 		var diff2 []string
 		for _, s1 := range peer_ips {
@@ -87,9 +82,12 @@ func DiscoverPeers(ch chan string) {
 				}
 			}
 		}*/
-		peer_ips = node_ips
+		//peer_ips = node_ips
+		ch <- fmt.Sprintln(node_ips)
+		ch <- fmt.Sprintln(peer_ips)
 		break
 	}
+	ch <- fmt.Sprint("STOP DISCOVER FUNCTION")
 }
 
 func connectToPeers(node_ip string) {
