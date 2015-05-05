@@ -13,6 +13,3 @@ deployment:
 checkout:
   post:
     - sed "s/<EMAIL>/$DOCKER_EMAIL/;s/<AUTH>/$DOCKER_AUTH/" < .dockercfg.template > ~/.dockercfg
-test:
-  override:
-    - docker build -t sut .
