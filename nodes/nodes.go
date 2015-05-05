@@ -16,7 +16,7 @@ var (
 	peer_ips             = []string{""}
 )
 
-func DiscoverPeers() {
+func DiscoverPeers(ch chan string) {
 	tries := 0
 	for {
 		node_ips := []string{}
@@ -38,7 +38,7 @@ func DiscoverPeers() {
 			}
 		}
 
-		fmt.Println("Discovering peers")
+		ch <- fmt.Sprintf("Discovering peers")
 		for _, i := range node_ips {
 			for _, ip := range peer_ips {
 				if i != ip {
@@ -46,7 +46,7 @@ func DiscoverPeers() {
 				}
 			}
 		}
-
+		ch <- fmt.Sprintf("Forgetting peers")
 		for _, ip := range peer_ips {
 			for _, i := range node_ips {
 				if ip != i {
@@ -124,7 +124,8 @@ func forgetPeers(node_ip string) {
 }
 
 func EventHandler(event tutum.Event) {
+	ch := make(chan string)
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		DiscoverPeers()
+		DiscoverPeers(ch)
 	}
 }
