@@ -20,7 +20,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	}
 
 	cidr := ""
-	//log.Println(inspect)
 	env_vars := inspect.Config.Env
 
 	for i := range env_vars {
@@ -80,7 +79,6 @@ func ContainerAttachThread(c *docker.Client) {
 	}
 
 	for _, container := range containers {
-		//log.Println(container.ID, container.Names)
 		err := AttachContainer(c, container.ID)
 		if err != nil {
 			log.Println(err)
@@ -106,12 +104,8 @@ func ContainerAttachThread(c *docker.Client) {
 	for {
 		select {
 		case msg := <-listener:
-			//DEBUG
-			//log.Print(msg.Status + " " + msg.ID + " " + msg.From)
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				AttachContainer(c, msg.ID)
-				//DEBUG
-				//fmt.Println("attached")
 			}
 		case <-timeout:
 			break
@@ -131,17 +125,9 @@ func discovering() {
 
 func main() {
 
-	//Init client
+	log.Println("Start running daemon")
 
-	//BOOT2DOCKER NEW TLS CLIENT
-	/*endpoint := "tcp://192.168.59.103:2376"
-	path := os.Getenv("DOCKER_CERT_PATH")
-	ca := fmt.Sprintf("%s/ca.pem", path)
-	cert := fmt.Sprintf("%s/cert.pem", path)
-	key := fmt.Sprintf("%s/key.pem", path)
-	client, err := docker.NewTLSClient(endpoint, cert, key, ca)*/
-	log.Println("Running main.go")
-
+	//Init Docker client
 	endpoint := "unix:///var/run/docker.sock"
 	client, err := docker.NewClient(endpoint)
 
@@ -159,6 +145,5 @@ func main() {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
 		go discovering()
 	}
-	log.Println("CONTAINER")
 	ContainerAttachThread(client)
 }

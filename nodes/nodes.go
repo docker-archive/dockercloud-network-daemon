@@ -31,7 +31,7 @@ func DiscoverPeers() {
 		for i := range nodeList.Objects {
 			state := nodeList.Objects[i].State
 
-			if state == "Deployed" { //or Unreachable
+			if state == "Deployed" || state == "Unreachable" {
 				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
 					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
 				}
@@ -39,6 +39,9 @@ func DiscoverPeers() {
 		}
 
 		var diff1 []string
+
+		//Checking if there are nodes that are not in the peer_ips list
+
 		for _, s1 := range node_ips {
 			found := false
 			for _, s2 := range peer_ips {
@@ -51,11 +54,14 @@ func DiscoverPeers() {
 				diff1 = append(diff1, s1)
 			}
 			for _, i := range diff1 {
-				log.Println(i)
 				connectToPeers(i)
 			}
 		}
+
 		var diff2 []string
+
+		//Checking if there are peers that are not in the node_ips list
+
 		for _, s1 := range peer_ips {
 			found := false
 			for _, s2 := range node_ips {
@@ -68,14 +74,13 @@ func DiscoverPeers() {
 				diff2 = append(diff2, s1)
 			}
 			for _, i := range diff2 {
-				log.Println(i)
 				forgetPeers(i)
 			}
 		}
 		peer_ips = node_ips
 		break
 	}
-	log.Println("STOP DISCOVER FUNCTION")
+	log.Println("Stopping discovery")
 }
 
 func connectToPeers(node_ip string) {
@@ -108,7 +113,7 @@ func connectToPeers(node_ip string) {
 			break
 		}
 	}
-	log.Println("STOP CONNECT FUNCTION")
+	log.Println("Discover Peers : done!")
 }
 
 func forgetPeers(node_ip string) {
@@ -141,14 +146,11 @@ func forgetPeers(node_ip string) {
 			break
 		}
 	}
-	log.Println("STOP FORGET FUNCTION")
+	log.Println("Forget Peers : done!")
 }
 
 func EventHandler(event tutum.Event) {
-	log.Println("EVENT:" + event.Type + " " + event.State)
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		log.Println(true)
 		DiscoverPeers()
 	}
-	log.Println("EXIT EVENT FUNC")
 }
