@@ -122,7 +122,7 @@ func connectToPeers(node_ip string) {
 			break
 		}
 	}
-	fmt.Sprint("STOP CONNECT FUNCTION")
+	log.Println("STOP CONNECT FUNCTION")
 }
 
 func forgetPeers(node_ip string) {
@@ -155,6 +155,7 @@ func forgetPeers(node_ip string) {
 			break
 		}
 	}
+	log.Println("STOP FORGET FUNCTION")
 }
 
 func EventHandler(event tutum.Event) {
