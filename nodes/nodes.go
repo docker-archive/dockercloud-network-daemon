@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tutumcloud/go-tutum/tutum"
+	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
 var (
@@ -54,6 +55,7 @@ func DiscoverPeers() {
 				diff1 = append(diff1, s1)
 			}
 		}
+
 		for _, i := range diff1 {
 			connectToPeers(i)
 		}
@@ -74,9 +76,11 @@ func DiscoverPeers() {
 				diff2 = append(diff2, s1)
 			}
 		}
+
 		for _, i := range diff2 {
 			forgetPeers(i)
 		}
+
 		peer_ips = node_ips
 		break
 	}
@@ -147,4 +151,10 @@ func forgetPeers(node_ip string) {
 		}
 	}
 	log.Println("Forget Peers : done!")
+}
+
+func EventHandler(event tutum.Event) {
+	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
+		nodes.DiscoverPeers()
+	}
 }

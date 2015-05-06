@@ -113,31 +113,13 @@ func ContainerAttachThread(c *docker.Client) {
 	}
 }
 
-var Sem = make(chan int, 1)
-
 func discovering() {
 	c := make(chan tutum.Event)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
 	for {
 		events := <-c
-		EventHandler(events)
-	}
-
-	/*for events := range c {
-		Sem <- 1
-		go func(events tutum.Event) { // <- add channel here to pipe out the logs
-			if events.Type == "node" && (events.State == "Deployed" || events.State == "Terminated") {
-				nodes.DiscoverPeers()
-				<-Sem
-			}
-		}(events)
-	}*/
-}
-
-func EventHandler(event tutum.Event) {
-	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		nodes.DiscoverPeers()
+		nodes.EventHandler(events)
 	}
 }
 
