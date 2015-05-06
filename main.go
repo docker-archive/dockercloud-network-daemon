@@ -122,7 +122,9 @@ func discovering() {
 	for events := range c {
 		Sem <- 1
 		go func(events tutum.Event) {
-			EventHandler(events)
+			if events.Type == "node" && (events.State == "Deployed" || events.State == "Terminated") {
+				nodes.DiscoverPeers()
+			}
 			<-Sem
 		}(events)
 	}
