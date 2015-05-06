@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -16,7 +15,7 @@ var (
 	peer_ips             = []string{""}
 )
 
-func DiscoverPeers(ch chan string) {
+func DiscoverPeers() {
 	tries := 0
 	for {
 		node_ips := []string{}
@@ -35,12 +34,10 @@ func DiscoverPeers(ch chan string) {
 			if state == "Deployed" { //or Unreachable
 				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
 					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
-					//ch <- fmt.Sprintln(node_ips)
 				}
 			}
 		}
 
-		//ch <- fmt.Sprintf("Discovering peers")
 		var diff1 []string
 		for _, s1 := range node_ips {
 			found := false
@@ -53,16 +50,11 @@ func DiscoverPeers(ch chan string) {
 			if !found {
 				diff1 = append(diff1, s1)
 			}
-			//ch <- fmt.Sprintln(diff1)
 			for _, i := range diff1 {
 				log.Println(i)
 				connectToPeers(i)
 			}
 		}
-		//ch <- fmt.Sprintln(node_ips)
-		//ch <- fmt.Sprintln(peer_ips)
-
-		//ch <- fmt.Sprintf("Forgetting peers")
 		var diff2 []string
 		for _, s1 := range peer_ips {
 			found := false
@@ -76,20 +68,14 @@ func DiscoverPeers(ch chan string) {
 				diff2 = append(diff2, s1)
 			}
 			for _, i := range diff2 {
+				log.Println(i)
 				forgetPeers(i)
 			}
 		}
-		/*for _, ip := range peer_ips {
-			for _, i := range node_ips {
-				if ip != i {
-					forgetPeers(ip)
-				}
-			}
-		}*/
 		peer_ips = node_ips
 		break
 	}
-	ch <- fmt.Sprint("STOP DISCOVER FUNCTION")
+	log.Println("STOP DISCOVER FUNCTION")
 }
 
 func connectToPeers(node_ip string) {
@@ -159,9 +145,10 @@ func forgetPeers(node_ip string) {
 }
 
 func EventHandler(event tutum.Event) {
-	ch := make(chan string)
 	log.Println("EVENT:" + event.Type + " " + event.State)
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		DiscoverPeers(ch)
+		log.Println(true)
+		DiscoverPeers()
 	}
+	log.Println("EXIT EVENT FUNC")
 }

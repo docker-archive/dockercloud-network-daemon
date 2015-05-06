@@ -119,9 +119,9 @@ func ContainerAttachThread(c *docker.Client) {
 	}
 }
 
-func discovering(ch chan string) {
+func discovering() {
 	c := make(chan tutum.Event)
-	nodes.DiscoverPeers(ch)
+	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
 	for {
 		events := <-c
@@ -157,11 +157,8 @@ func main() {
 	log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
 	if os.Getenv("TUTUM_AUTH") != "" {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
-		ch := make(chan string)
-		go discovering(ch)
-		log.Printf("%s", <-ch)
+		go discovering()
 	}
 	log.Println("CONTAINER")
 	ContainerAttachThread(client)
-	log.Println("EXIT")
 }
