@@ -124,8 +124,8 @@ func discovering() {
 		go func(events tutum.Event) {
 			if events.Type == "node" && (events.State == "Deployed" || events.State == "Terminated") {
 				nodes.DiscoverPeers()
+				<-Sem
 			}
-			<-Sem
 		}(events)
 	}
 }
