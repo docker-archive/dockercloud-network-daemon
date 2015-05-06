@@ -160,6 +160,7 @@ func forgetPeers(node_ip string) {
 
 func EventHandler(event tutum.Event) {
 	ch := make(chan string)
+	log.Println("EVENT:" + event.Type + " " + event.State)
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
 		DiscoverPeers(ch)
 	}
