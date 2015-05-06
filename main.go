@@ -117,9 +117,21 @@ func discovering() {
 	c := make(chan tutum.Event)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
-	for {
-		events := <-c
-		nodes.EventHandler(events)
+	triggerEvent(c)
+}
+
+var Sem = make(chan int, 1)
+
+func triggerEvent(c chan tutum.Event) {
+	for events := range c {
+		//events := <-c
+		Sem <- 1
+		go func(events tutum.Event) {
+			if events.Type == "node" && (events.State == "Deployed" || events.State == "Terminated") {
+				nodes.DiscoverPeers()
+				<-Sem
+			}
+		}(events)
 	}
 }
 
