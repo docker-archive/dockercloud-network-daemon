@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tutumcloud/go-tutum/tutum"
-	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
 var (
@@ -155,6 +154,6 @@ func forgetPeers(node_ip string) {
 
 func EventHandler(event tutum.Event) {
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		nodes.DiscoverPeers()
+		DiscoverPeers()
 	}
 }
