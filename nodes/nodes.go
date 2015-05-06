@@ -53,9 +53,9 @@ func DiscoverPeers() {
 			if !found {
 				diff1 = append(diff1, s1)
 			}
-			for _, i := range diff1 {
-				connectToPeers(i)
-			}
+		}
+		for _, i := range diff1 {
+			connectToPeers(i)
 		}
 
 		var diff2 []string
@@ -73,9 +73,9 @@ func DiscoverPeers() {
 			if !found {
 				diff2 = append(diff2, s1)
 			}
-			for _, i := range diff2 {
-				forgetPeers(i)
-			}
+		}
+		for _, i := range diff2 {
+			forgetPeers(i)
 		}
 		peer_ips = node_ips
 		break

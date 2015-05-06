@@ -119,15 +119,20 @@ func discovering() {
 	c := make(chan tutum.Event)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
-	for events := range c {
+	for {
+		events := <-c
+		EventHandler(events)
+	}
+
+	/*for events := range c {
 		Sem <- 1
-		go func(events tutum.Event) {
+		go func(events tutum.Event) { // <- add channel here to pipe out the logs
 			if events.Type == "node" && (events.State == "Deployed" || events.State == "Terminated") {
 				nodes.DiscoverPeers()
 				<-Sem
 			}
 		}(events)
-	}
+	}*/
 }
 
 func EventHandler(event tutum.Event) {
