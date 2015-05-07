@@ -41,10 +41,10 @@ func AttachContainer(c *docker.Client, container_id string) error {
 				log.Println(err)
 			}
 
-			stderr, err := cmd.StderrPipe()
-			if err != nil {
+			stderr, _ := cmd.StderrPipe()
+			/*if err != nil {
 				log.Println(err)
-			}
+			}*/
 
 			if err := cmd.Start(); err != nil {
 				log.Println(err)
