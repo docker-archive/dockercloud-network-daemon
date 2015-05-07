@@ -104,6 +104,13 @@ func ContainerAttachThread(c *docker.Client) {
 	for {
 		select {
 		case msg := <-listener:
+			if msg.Status == "EOF" {
+				log.Println("EOF INCOMING")
+				c.RemoveEventListener(listener)
+				connectToDocker()
+				break
+			}
+
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				AttachContainer(c, msg.ID)
 			}
@@ -123,14 +130,23 @@ func discovering() {
 	}
 }
 
+func connectToDocker() (*docker.Client, error) {
+	endpoint := "unix:///var/run/docker.sock"
+
+	client, err := docker.NewClient(endpoint)
+
+	if err != nil {
+		log.Println(err)
+	}
+	return client, nil
+}
+
 func main() {
 
 	log.Println("Start running daemon")
 
 	//Init Docker client
-	endpoint := "unix:///var/run/docker.sock"
-	client, err := docker.NewClient(endpoint)
-
+	client, err := connectToDocker()
 	if err != nil {
 		log.Fatal(err)
 	}
