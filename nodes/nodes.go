@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/manucorporat/try"
 	"github.com/tutumcloud/go-tutum/tutum"
 )
 
@@ -18,69 +19,76 @@ var (
 func DiscoverPeers() {
 	tries := 0
 	for {
-		node_ips := []string{}
-		nodeList, err := tutum.ListNodes()
-		if err != nil {
+		try.This(func() {
+			node_ips := []string{}
+			nodeList, err := tutum.ListNodes()
+			if err != nil {
+				//tries++
+				//time.Sleep(1)
+				//if tries > 3 {
+				log.Println(err)
+				//}
+			}
+
+			for i := range nodeList.Objects {
+				state := nodeList.Objects[i].State
+
+				if state == "Deployed" || state == "Unreachable" {
+					if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
+						node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
+					}
+				}
+			}
+
+			var diff1 []string
+
+			//Checking if there are nodes that are not in the peer_ips list
+
+			for _, s1 := range node_ips {
+				found := false
+				for _, s2 := range peer_ips {
+					if s1 == s2 {
+						found = true
+						break
+					}
+				}
+				if !found {
+					diff1 = append(diff1, s1)
+				}
+			}
+
+			for _, i := range diff1 {
+				connectToPeers(i)
+			}
+
+			var diff2 []string
+
+			//Checking if there are peers that are not in the node_ips list
+
+			for _, s1 := range peer_ips {
+				found := false
+				for _, s2 := range node_ips {
+					if s1 == s2 {
+						found = true
+						break
+					}
+				}
+				if !found {
+					diff2 = append(diff2, s1)
+				}
+			}
+
+			for _, i := range diff2 {
+				forgetPeers(i)
+			}
+
+			peer_ips = node_ips
+		}).Catch(func(e try.E) {
 			tries++
-			time.Sleep(1)
 			if tries > 3 {
-				log.Fatal(err)
+				log.Println(e)
 			}
-		}
-
-		for i := range nodeList.Objects {
-			state := nodeList.Objects[i].State
-
-			if state == "Deployed" || state == "Unreachable" {
-				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
-					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
-				}
-			}
-		}
-
-		var diff1 []string
-
-		//Checking if there are nodes that are not in the peer_ips list
-
-		for _, s1 := range node_ips {
-			found := false
-			for _, s2 := range peer_ips {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			if !found {
-				diff1 = append(diff1, s1)
-			}
-		}
-
-		for _, i := range diff1 {
-			connectToPeers(i)
-		}
-
-		var diff2 []string
-
-		//Checking if there are peers that are not in the node_ips list
-
-		for _, s1 := range peer_ips {
-			found := false
-			for _, s2 := range node_ips {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			if !found {
-				diff2 = append(diff2, s1)
-			}
-		}
-
-		for _, i := range diff2 {
-			forgetPeers(i)
-		}
-
-		peer_ips = node_ips
+		})
 		break
 	}
 	log.Println("Stopping discovery")
