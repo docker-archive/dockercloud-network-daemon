@@ -16,6 +16,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	inspect, err := c.InspectContainer(container_id)
 
 	if err != nil {
+		log.Println("Inspecting error")
 		log.Printf("%s: exception when inspecting the container", err)
 	}
 
@@ -64,11 +65,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	} else {
 		log.Printf("%s: cannot find the IP address to add to weave", container_id)
 	}
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
