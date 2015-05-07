@@ -38,16 +38,16 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			stdout, err := cmd.StdoutPipe()
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 
 			stderr, err := cmd.StderrPipe()
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 
 			if err := cmd.Start(); err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 
 			if err := cmd.Wait(); err != nil {
@@ -75,7 +75,7 @@ func ContainerAttachThread(c *docker.Client) {
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	for _, container := range containers {
@@ -87,14 +87,14 @@ func ContainerAttachThread(c *docker.Client) {
 	}
 	err = c.AddEventListener(listener)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	defer func() {
 
 		err = c.RemoveEventListener(listener)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 
 	}()
