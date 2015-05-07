@@ -115,7 +115,10 @@ func ContainerAttachThread(c *docker.Client) {
 			}
 
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
-				AttachContainer(c, msg.ID)
+				err := AttachContainer(c, msg.ID)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 		case <-timeout:
 			break
