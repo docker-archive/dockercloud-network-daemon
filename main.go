@@ -102,6 +102,8 @@ func ContainerAttachThread(c *docker.Client) {
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
+					log.Println("ERROR ERROR ERROR ERROR")
+					log.Println(err)
 					log.Fatal(err)
 					break
 				}
