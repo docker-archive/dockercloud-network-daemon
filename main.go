@@ -16,8 +16,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	inspect, err := c.InspectContainer(container_id)
 
 	if err != nil {
-		log.Println("Inspecting error")
-		log.Printf("%s: exception when inspecting the container", err)
+		return err
 	}
 
 	cidr := ""
