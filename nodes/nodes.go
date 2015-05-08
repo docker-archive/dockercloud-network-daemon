@@ -16,7 +16,7 @@ var (
 )
 
 func DiscoverPeers() {
-	tries := 0
+	//tries := 0
 	for {
 		node_ips := []string{}
 		nodeList, err := tutum.ListNodes()
