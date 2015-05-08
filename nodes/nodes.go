@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/manucorporat/try"
 	"github.com/tutumcloud/go-tutum/tutum"
 )
 
@@ -19,72 +18,65 @@ var (
 func DiscoverPeers() {
 	tries := 0
 	for {
-		try.This(func() {
-			node_ips := []string{}
-			nodeList, err := tutum.ListNodes()
-			if err != nil {
-				log.Println(err)
-			}
+		node_ips := []string{}
+		nodeList, err := tutum.ListNodes()
+		if err != nil {
+			log.Println(err)
+		}
 
-			for i := range nodeList.Objects {
-				state := nodeList.Objects[i].State
+		for i := range nodeList.Objects {
+			state := nodeList.Objects[i].State
 
-				if state == "Deployed" || state == "Unreachable" {
-					if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
-						node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
-					}
+			if state == "Deployed" || state == "Unreachable" {
+				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
+					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
 				}
 			}
+		}
 
-			var diff1 []string
+		var diff1 []string
 
-			//Checking if there are nodes that are not in the peer_ips list
+		//Checking if there are nodes that are not in the peer_ips list
 
-			for _, s1 := range node_ips {
-				found := false
-				for _, s2 := range peer_ips {
-					if s1 == s2 {
-						found = true
-						break
-					}
-				}
-				if !found {
-					diff1 = append(diff1, s1)
+		for _, s1 := range node_ips {
+			found := false
+			for _, s2 := range peer_ips {
+				if s1 == s2 {
+					found = true
+					break
 				}
 			}
-
-			for _, i := range diff1 {
-				connectToPeers(i)
+			if !found {
+				diff1 = append(diff1, s1)
 			}
+		}
 
-			var diff2 []string
+		for _, i := range diff1 {
+			connectToPeers(i)
+		}
 
-			//Checking if there are peers that are not in the node_ips list
+		var diff2 []string
 
-			for _, s1 := range peer_ips {
-				found := false
-				for _, s2 := range node_ips {
-					if s1 == s2 {
-						found = true
-						break
-					}
+		//Checking if there are peers that are not in the node_ips list
+
+		for _, s1 := range peer_ips {
+			found := false
+			for _, s2 := range node_ips {
+				if s1 == s2 {
+					found = true
+					break
 				}
-				if !found {
-					diff2 = append(diff2, s1)
-				}
 			}
+			if !found {
+				diff2 = append(diff2, s1)
+			}
+		}
 
-			for _, i := range diff2 {
-				forgetPeers(i)
-			}
+		for _, i := range diff2 {
+			forgetPeers(i)
+		}
 
-			peer_ips = node_ips
-		}).Catch(func(e try.E) {
-			tries++
-			if tries > 3 {
-				log.Println(e)
-			}
-		})
+		peer_ips = node_ips
 		break
 	}
 	log.Println("Stopping discovery")
@@ -157,11 +149,7 @@ func forgetPeers(node_ip string) {
 }
 
 func EventHandler(event tutum.Event) {
-	try.This(func() {
-		if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-			DiscoverPeers()
-		}
-	}).Catch(func(e try.E) {
-		log.Println(e)
-	})
+	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
+		DiscoverPeers()
+	}
 }

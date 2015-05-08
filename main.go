@@ -39,22 +39,19 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			stdout, err := cmd.StdoutPipe()
 			if err != nil {
-				log.Println("5")
-				log.Println(err)
+				return err
 			}
 
 			stderr, _ := cmd.StderrPipe()
-			/*if err != nil {
-				log.Println(err)
-			}*/
+			if err != nil {
+				return err
+			}
 
 			if err := cmd.Start(); err != nil {
-				log.Println("6")
-				log.Println(err)
+				return err
 			}
 
 			if err := cmd.Wait(); err != nil {
-				log.Println("7")
 				log.Printf("%s: %s %s", container_id, stdout, stderr)
 				tries++
 				time.Sleep(1)
@@ -74,21 +71,18 @@ func ContainerAttachThread(c *docker.Client) {
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
-		log.Println("1")
 		log.Println(err)
 	}
 
 	for _, container := range containers {
 		err := AttachContainer(c, container.ID)
 		if err != nil {
-			log.Println("2")
 			log.Println(err)
 		}
 
 	}
 	err = c.AddEventListener(listener)
 	if err != nil {
-		log.Println("3")
 		log.Println(err)
 	}
 
@@ -96,7 +90,6 @@ func ContainerAttachThread(c *docker.Client) {
 
 		err = c.RemoveEventListener(listener)
 		if err != nil {
-			log.Println("4")
 			log.Println(err)
 		}
 
@@ -107,17 +100,11 @@ func ContainerAttachThread(c *docker.Client) {
 	for {
 		select {
 		case msg := <-listener:
-			if msg.Status == "EOF" {
-				log.Println("EOF INCOMING")
-				c.RemoveEventListener(listener)
-				connectToDocker()
-				break
-			}
-
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
 					log.Fatal(err)
+					break
 				}
 			}
 		case <-timeout:
@@ -142,6 +129,7 @@ func connectToDocker() (*docker.Client, error) {
 	client, err := docker.NewClient(endpoint)
 
 	if err != nil {
+
 		log.Println(err)
 	}
 	return client, nil
