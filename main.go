@@ -36,24 +36,36 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
-			stdout, err := cmd.StdoutPipe()
+			_, err := cmd.StdoutPipe()
 			if err != nil {
-				return err
+				tries++
+				if tries > 3 {
+					return err
+				}
+
 			}
 
-			stderr, _ := cmd.StderrPipe()
+			/*stderr, err := cmd.StderrPipe()
 			if err != nil {
-				return err
-			}
+				tries++
+				if tries > 3 {
+					return err
+				}
+			}*/
 
 			if err := cmd.Start(); err != nil {
-				return err
+				tries++
+				if tries > 3 {
+					return err
+				}
 			}
 
 			if err := cmd.Wait(); err != nil {
-				log.Printf("%s: %s %s", container_id, stdout, stderr)
 				tries++
-				time.Sleep(1)
+				log.Println("hello")
+				if tries > 3 {
+					return err
+				}
 			} else {
 				break
 			}
@@ -99,6 +111,10 @@ func ContainerAttachThread(c *docker.Client) error {
 	for {
 		select {
 		case msg := <-listener:
+			if msg == docker.EOFEvent {
+				log.Fatal("EOF")
+				break
+			}
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
