@@ -168,7 +168,7 @@ func forgetPeers(node_ip string) error {
 		}
 
 		if err := cmd.Wait(); err != nil {
-			log.Printf("%s: %s %s", node_ip, stdout, stderr)
+			log.Printf("CMD ERRO : %s: %s %s", node_ip, stdout, stderr)
 			tries++
 			if tries > 3 {
 				log.Printf("Unable to 'weave forget: %s %s", stdout, stderr)
