@@ -64,34 +64,34 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	return nil
 }
 
-func ContainerAttachThread(c *docker.Client) {
+func ContainerAttachThread(c *docker.Client) error {
 
 	listener := make(chan *docker.APIEvents)
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	for _, container := range containers {
 		err := AttachContainer(c, container.ID)
 		if err != nil {
-			log.Println(err)
+			return err
 		}
 
 	}
 	err = c.AddEventListener(listener)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
-	defer func() {
+	defer func() error {
 
 		err = c.RemoveEventListener(listener)
 		if err != nil {
-			log.Println(err)
+			return err
 		}
-
+		return nil
 	}()
 
 	timeout := time.After(1 * time.Second)
@@ -102,8 +102,6 @@ func ContainerAttachThread(c *docker.Client) {
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
-					log.Println("ERROR ERROR ERROR ERROR")
-					log.Println(err)
 					log.Fatal(err)
 					break
 				}
@@ -119,6 +117,7 @@ func discovering() {
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
 	for {
+		log.Println("EVENT")
 		events := <-c
 		nodes.EventHandler(events)
 	}
@@ -156,5 +155,9 @@ func main() {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
 		go discovering()
 	}
-	ContainerAttachThread(client)
+	err = ContainerAttachThread(client)
+	if err != nil {
+		log.Println("ATTACH THREAD ERR")
+		log.Println(err)
+	}
 }
