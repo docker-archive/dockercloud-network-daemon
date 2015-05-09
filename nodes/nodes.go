@@ -15,13 +15,13 @@ var (
 	peer_ips             = []string{""}
 )
 
-func DiscoverPeers() {
-	//tries := 0
+func DiscoverPeers() error {
+	tries := 0
 	for {
 		node_ips := []string{}
 		nodeList, err := tutum.ListNodes()
 		if err != nil {
-			log.Println(err)
+			return err
 		}
 
 		for i := range nodeList.Objects {
@@ -52,7 +52,13 @@ func DiscoverPeers() {
 		}
 
 		for _, i := range diff1 {
-			connectToPeers(i)
+			err := connectToPeers(i)
+			if err != nil {
+				tries++
+				if tries > 3 {
+					return err
+				}
+			}
 		}
 
 		var diff2 []string
@@ -73,16 +79,23 @@ func DiscoverPeers() {
 		}
 
 		for _, i := range diff2 {
-			forgetPeers(i)
+			err := forgetPeers(i)
+			if err != nil {
+				tries++
+				if tries > 3 {
+					return err
+				}
+			}
 		}
 
 		peer_ips = node_ips
 		break
 	}
 	log.Println("Stopping discovery")
+	return nil
 }
 
-func connectToPeers(node_ip string) {
+func connectToPeers(node_ip string) error {
 	tries := 0
 	for {
 
@@ -90,16 +103,25 @@ func connectToPeers(node_ip string) {
 		cmd := exec.Command("/weave", "--local", "connect", node_ip)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		if err := cmd.Start(); err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		if err := cmd.Wait(); err != nil {
@@ -107,31 +129,42 @@ func connectToPeers(node_ip string) {
 			tries++
 			if tries > 3 {
 				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
+				return err
 			}
 		} else {
 			break
 		}
 	}
 	log.Println("Discover Peers: done!")
+	return nil
 }
 
-func forgetPeers(node_ip string) {
+func forgetPeers(node_ip string) error {
 	tries := 0
 	for {
 		log.Printf("forgetting peer: %s", node_ip)
 		cmd := exec.Command("/weave", "--local", "forget", node_ip)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		if err := cmd.Start(); err != nil {
-			log.Println(err)
+			tries++
+			if tries > 3 {
+				return err
+			}
 		}
 
 		if err := cmd.Wait(); err != nil {
@@ -139,6 +172,7 @@ func forgetPeers(node_ip string) {
 			tries++
 			if tries > 3 {
 				log.Printf("Unable to 'weave forget: %s %s", stdout, stderr)
+				return err
 			}
 			time.Sleep(1)
 		} else {
@@ -146,10 +180,15 @@ func forgetPeers(node_ip string) {
 		}
 	}
 	log.Println("Forget Peers: done!")
+	return nil
 }
 
-func EventHandler(event tutum.Event) {
+func EventHandler(event tutum.Event) error {
 	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		DiscoverPeers()
+		err := DiscoverPeers()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }

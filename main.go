@@ -133,9 +133,12 @@ func discovering() {
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c)
 	for {
-		log.Println("EVENT")
 		events := <-c
-		nodes.EventHandler(events)
+		log.Println("EVENT")
+		err := nodes.EventHandler(events)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
