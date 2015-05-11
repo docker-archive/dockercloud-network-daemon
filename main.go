@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MaximeHeckel/go-tutum/tutum"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/tutumcloud/go-tutum/tutum"
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
@@ -16,6 +16,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	inspect, err := c.InspectContainer(container_id)
 
 	if err != nil {
+		log.Println("Inspecting Containers failed")
 		return err
 	}
 
@@ -23,6 +24,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	env_vars := inspect.Config.Env
 
 	for i := range env_vars {
+		log.Println("Checking containers ENV")
 		if strings.HasPrefix(env_vars[i], "TUTUM_IP_ADDRESS=") {
 			cidr = env_vars[i][len("TUTUM_IP_ADDRESS="):]
 			break
@@ -31,30 +33,24 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 	if cidr != "" {
 		tries := 0
-		for tries < 3 {
-
+		for {
 			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
 			_, err := cmd.StdoutPipe()
 			if err != nil {
 				tries++
+				time.Sleep(2 * time.Second)
+				log.Println("Stdout error")
 				if tries > 3 {
 					return err
 				}
-
 			}
-
-			/*stderr, err := cmd.StderrPipe()
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
-				}
-			}*/
 
 			if err := cmd.Start(); err != nil {
 				tries++
+				time.Sleep(2 * time.Second)
+				log.Println("Start weave cmd failed")
 				if tries > 3 {
 					return err
 				}
@@ -62,7 +58,8 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			if err := cmd.Wait(); err != nil {
 				tries++
-				log.Println("hello")
+				time.Sleep(2 * time.Second)
+				log.Println("Wait weave cmd failed")
 				if tries > 3 {
 					return err
 				}
@@ -82,18 +79,23 @@ func ContainerAttachThread(c *docker.Client) error {
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
+		log.Println("Listing Containers failed")
 		return err
 	}
 
 	for _, container := range containers {
+		log.Println("Attaching Containers")
 		err := AttachContainer(c, container.ID)
 		if err != nil {
+			log.Println("Attaching Containers failed")
 			return err
 		}
-
+		time.Sleep(2 * time.Second)
 	}
+
 	err = c.AddEventListener(listener)
 	if err != nil {
+		log.Println("Listening Containers Events failed")
 		return err
 	}
 
@@ -109,14 +111,17 @@ func ContainerAttachThread(c *docker.Client) error {
 	timeout := time.After(1 * time.Second)
 
 	for {
+		log.Println("LOOP: Container")
 		select {
 		case msg := <-listener:
+			log.Println("New Container Event")
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
-					log.Fatal(err)
+					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
 					break
 				}
+				time.Sleep(2 * time.Second)
 			}
 		case <-timeout:
 			break
@@ -130,22 +135,23 @@ func discovering() {
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c, e)
 	for {
+		log.Println("LOOP: Node")
 		select {
 		case event := <-c:
-			//err := nodes.EventHandler(events)
-			//if err != nil {
-			//log.Println(err)
-			//}
+			log.Println("New Node Event")
 			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
 				err := nodes.DiscoverPeers()
 				if err != nil {
 					log.Println(err)
 				}
+				time.Sleep(2 * time.Second)
 			}
-		case err := <-e:
-			log.Println(err)
-			go discovering()
 			break
+		case err := <-e:
+			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
+			time.Sleep(5 * time.Second)
+			go discovering()
+			break Loop
 		}
 	}
 }
@@ -169,12 +175,14 @@ func main() {
 	//Init Docker client
 	client, err := connectToDocker()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		os.Exit(1)
 	}
 
 	node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		os.Exit(1)
 	}
 	nodes.Tutum_Node_Public_Ip = node.Public_ip
 	log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
@@ -182,9 +190,11 @@ func main() {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
 		go discovering()
 	}
-	err = ContainerAttachThread(client)
-	if err != nil {
-		log.Println("ATTACH THREAD ERR")
-		log.Println(err)
+	for {
+		err := ContainerAttachThread(client)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(15 * time.Second)
+		}
 	}
 }
