@@ -128,6 +128,7 @@ func discovering() {
 	e := make(chan error)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c, e)
+Loop:
 	for {
 		select {
 		case event := <-c:
@@ -140,7 +141,7 @@ func discovering() {
 		case err := <-e:
 			log.Println(err)
 			go discovering()
-			break
+			break Loop
 		}
 	}
 }
