@@ -182,13 +182,3 @@ func forgetPeers(node_ip string) error {
 	log.Println("Forget Peers: done!")
 	return nil
 }
-
-func EventHandler(event tutum.Event) error {
-	if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-		err := DiscoverPeers()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}

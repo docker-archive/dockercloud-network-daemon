@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MaximeHeckel/go-tutum/tutum"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/tutumcloud/go-tutum/tutum"
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
@@ -62,7 +62,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			if err := cmd.Wait(); err != nil {
 				tries++
-				log.Println("hello")
 				if tries > 3 {
 					return err
 				}
@@ -132,10 +131,6 @@ func discovering() {
 	for {
 		select {
 		case event := <-c:
-			//err := nodes.EventHandler(events)
-			//if err != nil {
-			//log.Println(err)
-			//}
 			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
 				err := nodes.DiscoverPeers()
 				if err != nil {
