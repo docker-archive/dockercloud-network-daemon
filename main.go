@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MaximeHeckel/go-tutum/tutum"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/tutumcloud/go-tutum/tutum"
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
@@ -111,10 +111,6 @@ func ContainerAttachThread(c *docker.Client) error {
 	for {
 		select {
 		case msg := <-listener:
-			if msg == docker.EOFEvent {
-				log.Fatal("EOF")
-				break
-			}
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
@@ -130,14 +126,26 @@ func ContainerAttachThread(c *docker.Client) error {
 
 func discovering() {
 	c := make(chan tutum.Event)
+	e := make(chan error)
 	nodes.DiscoverPeers()
-	go tutum.TutumEvents(c)
+	go tutum.TutumEvents(c, e)
 	for {
-		events := <-c
-		log.Println("EVENT")
-		err := nodes.EventHandler(events)
-		if err != nil {
-			log.Fatal(err)
+		select {
+		case event := <-c:
+			//err := nodes.EventHandler(events)
+			//if err != nil {
+			//log.Println(err)
+			//}
+			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
+				err := nodes.DiscoverPeers()
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		case err := <-e:
+			log.Println(err)
+			go discovering()
+			break
 		}
 	}
 }
