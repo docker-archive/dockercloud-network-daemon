@@ -38,32 +38,18 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			_, err := cmd.StdoutPipe()
 			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
-				}
-
+				return err
 			}
 
-			/*stderr, err := cmd.StderrPipe()
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
-				}
-			}*/
-
 			if err := cmd.Start(); err != nil {
-				tries++
-				if tries > 3 {
-					return err
-				}
+				return err
 			}
 
 			if err := cmd.Wait(); err != nil {
 				tries++
+				return err
 				if tries > 3 {
-					return err
+					break
 				}
 			} else {
 				break
