@@ -47,10 +47,11 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			if err := cmd.Wait(); err != nil {
 				tries++
-				return err
+
 				if tries > 3 {
 					break
 				}
+				return err
 			} else {
 				break
 			}
@@ -99,7 +100,7 @@ func ContainerAttachThread(c *docker.Client) error {
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
-					log.Fatal(err)
+					log.Println(err)
 					break
 				}
 			}
@@ -151,12 +152,12 @@ func main() {
 	//Init Docker client
 	client, err := connectToDocker()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	nodes.Tutum_Node_Public_Ip = node.Public_ip
 	log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
