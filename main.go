@@ -133,6 +133,21 @@ Loop:
 	}
 }
 
+func containerThread(client *docker.Client) {
+	tries := 0
+	if tries > 3 {
+		time.Sleep(30 * time.Second)
+	}
+	err := ContainerAttachThread(client)
+	if err != nil {
+		log.Println("ATTACH THREAD ERR")
+		log.Println(err)
+		containerThread(client)
+		tries++
+		time.Sleep(1500 * time.Millisecond)
+	}
+}
+
 func connectToDocker() (*docker.Client, error) {
 	endpoint := "unix:///var/run/docker.sock"
 
@@ -165,9 +180,5 @@ func main() {
 		log.Println("Detected Tutum API access - starting peer discovery thread")
 		go discovering()
 	}
-	err = ContainerAttachThread(client)
-	if err != nil {
-		log.Println("ATTACH THREAD ERR")
-		log.Println(err)
-	}
+	containerThread(client)
 }
