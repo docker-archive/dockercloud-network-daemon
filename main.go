@@ -51,9 +51,8 @@ func AttachContainer(c *docker.Client, container_id string) error {
 				tries++
 				log.Println("Wait weave cmd failed")
 				if tries > 3 {
-					break
+					return err
 				}
-				return err
 			} else {
 				break
 			}
