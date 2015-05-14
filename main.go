@@ -139,6 +139,7 @@ func containerThread(client *docker.Client) {
 		log.Println("ATTACH THREAD ERR")
 		log.Println(err)
 		containerThread(client)
+		time.Sleep(15 * time.Second)
 	}
 }
 
