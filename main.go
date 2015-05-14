@@ -16,6 +16,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	inspect, err := c.InspectContainer(container_id)
 
 	if err != nil {
+		log.Println("Inspecting Containers failed")
 		return err
 	}
 
@@ -42,12 +43,13 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			}
 
 			if err := cmd.Start(); err != nil {
+				log.Println("Start weave cmd failed")
 				return err
 			}
 
 			if err := cmd.Wait(); err != nil {
 				tries++
-
+				log.Println("Wait weave cmd failed")
 				if tries > 3 {
 					break
 				}
@@ -68,18 +70,21 @@ func ContainerAttachThread(c *docker.Client) error {
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
+		log.Println("Listing Containers failed")
 		return err
 	}
 
 	for _, container := range containers {
 		err := AttachContainer(c, container.ID)
 		if err != nil {
+			log.Println("Attaching Containers failed")
 			return err
 		}
 
 	}
 	err = c.AddEventListener(listener)
 	if err != nil {
+		log.Println("Listening Containers Events failed")
 		return err
 	}
 
@@ -100,6 +105,7 @@ func ContainerAttachThread(c *docker.Client) error {
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
+					log.Println("Attaching Containers failed")
 					log.Println(err)
 					break
 				}
