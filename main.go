@@ -134,17 +134,12 @@ Loop:
 }
 
 func containerThread(client *docker.Client) {
-	tries := 0
-	if tries > 3 {
-		time.Sleep(30 * time.Second)
-	}
 	err := ContainerAttachThread(client)
 	if err != nil {
 		log.Println("ATTACH THREAD ERR")
 		log.Println(err)
 		containerThread(client)
-		tries++
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(15 * time.Second)
 	}
 }
 
