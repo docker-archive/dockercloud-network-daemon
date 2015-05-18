@@ -108,6 +108,7 @@ func ContainerAttachThread(c *docker.Client) error {
 					log.Println(err)
 					break
 				}
+				time.Sleep(2 * time.Second)
 			}
 		case <-timeout:
 			break
@@ -129,9 +130,11 @@ Loop:
 				if err != nil {
 					log.Println(err)
 				}
+				time.Sleep(2 * time.Second)
 			}
 		case err := <-e:
 			log.Println(err)
+			time.Sleep(5 * time.Second)
 			go discovering()
 			break Loop
 		}
