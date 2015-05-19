@@ -24,6 +24,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	env_vars := inspect.Config.Env
 
 	for i := range env_vars {
+		log.Println("Checking containers ENV")
 		if strings.HasPrefix(env_vars[i], "TUTUM_IP_ADDRESS=") {
 			cidr = env_vars[i][len("TUTUM_IP_ADDRESS="):]
 			break
@@ -33,13 +34,18 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	if cidr != "" {
 		tries := 0
 		for {
-
+			log.Println("Connecting" + container_id + " to weave")
 			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
 			_, err := cmd.StdoutPipe()
 			if err != nil {
-				return err
+				tries++
+				time.Sleep(2 * time.Second)
+				log.Println("Stdout error")
+				if tries > 3 {
+					return err
+				}
 			}
 
 			if err := cmd.Start(); err != nil {
@@ -79,6 +85,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
+		log.Println("Attaching Containers")
 		err := AttachContainer(c, container.ID)
 		if err != nil {
 			log.Println("Attaching Containers failed")
@@ -184,6 +191,7 @@ func main() {
 		go discovering()
 	}
 	for {
+		log.Println("Launching Container Attach Thread")
 		err := ContainerAttachThread(client)
 		if err != nil {
 			log.Println("ATTACH ERROR")
