@@ -32,7 +32,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 	if cidr != "" {
 		tries := 0
-		for tries < 3 {
+		for {
 
 			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
@@ -43,8 +43,11 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			}
 
 			if err := cmd.Start(); err != nil {
+				tries++
 				log.Println("Start weave cmd failed")
-				return err
+				if tries > 3 {
+					return err
+				}
 			}
 
 			if err := cmd.Wait(); err != nil {
@@ -108,6 +111,7 @@ func ContainerAttachThread(c *docker.Client) error {
 					log.Println(err)
 					break
 				}
+				time.Sleep(2 * time.Second)
 			}
 		case <-timeout:
 			break
@@ -129,9 +133,11 @@ Loop:
 				if err != nil {
 					log.Println(err)
 				}
+				time.Sleep(2 * time.Second)
 			}
 		case err := <-e:
 			log.Println(err)
+			time.Sleep(5 * time.Second)
 			go discovering()
 			break Loop
 		}
