@@ -84,8 +84,9 @@ func ContainerAttachThread(c *docker.Client) error {
 			log.Println("Attaching Containers failed")
 			return err
 		}
-
+		time.Sleep(2 * time.Second)
 	}
+
 	err = c.AddEventListener(listener)
 	if err != nil {
 		log.Println("Listening Containers Events failed")
@@ -104,8 +105,10 @@ func ContainerAttachThread(c *docker.Client) error {
 	timeout := time.After(1 * time.Second)
 
 	for {
+		log.Println("LOOP: Container")
 		select {
 		case msg := <-listener:
+			log.Println("New Container Event")
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
@@ -126,10 +129,11 @@ func discovering() {
 	e := make(chan error)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c, e)
-Loop:
 	for {
+		log.Println("LOOP: Node")
 		select {
 		case event := <-c:
+			log.Println("New Node Event")
 			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
 				err := nodes.DiscoverPeers()
 				if err != nil {
@@ -137,11 +141,12 @@ Loop:
 				}
 				time.Sleep(2 * time.Second)
 			}
+			break
 		case err := <-e:
 			log.Println(err)
 			time.Sleep(5 * time.Second)
-			go discovering()
-			break Loop
+			go tutum.TutumEvents(c, e)
+			break
 		}
 	}
 }
