@@ -44,6 +44,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			if err := cmd.Start(); err != nil {
 				tries++
+				time.Sleep(2 * time.Second)
 				log.Println("Start weave cmd failed")
 				if tries > 3 {
 					return err
@@ -52,6 +53,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 
 			if err := cmd.Wait(); err != nil {
 				tries++
+				time.Sleep(2 * time.Second)
 				log.Println("Wait weave cmd failed")
 				if tries > 3 {
 					return err

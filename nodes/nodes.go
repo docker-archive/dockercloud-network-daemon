@@ -104,6 +104,7 @@ func connectToPeers(node_ip string) error {
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -112,6 +113,7 @@ func connectToPeers(node_ip string) error {
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -119,6 +121,7 @@ func connectToPeers(node_ip string) error {
 
 		if err := cmd.Start(); err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -127,6 +130,7 @@ func connectToPeers(node_ip string) error {
 		if err := cmd.Wait(); err != nil {
 			log.Printf("%s: %s %s", node_ip, stdout, stderr)
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
 				return err
@@ -147,6 +151,7 @@ func forgetPeers(node_ip string) error {
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -155,6 +160,7 @@ func forgetPeers(node_ip string) error {
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -162,6 +168,7 @@ func forgetPeers(node_ip string) error {
 
 		if err := cmd.Start(); err != nil {
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				return err
 			}
@@ -170,11 +177,11 @@ func forgetPeers(node_ip string) error {
 		if err := cmd.Wait(); err != nil {
 			log.Printf("CMD ERRO : %s: %s %s", node_ip, stdout, stderr)
 			tries++
+			time.Sleep(2 * time.Second)
 			if tries > 3 {
 				log.Printf("Unable to 'weave forget: %s %s", stdout, stderr)
 				return err
 			}
-			time.Sleep(1)
 		} else {
 			break
 		}
