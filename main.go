@@ -24,7 +24,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	env_vars := inspect.Config.Env
 
 	for i := range env_vars {
-		log.Println("Checking containers ENV")
 		if strings.HasPrefix(env_vars[i], "TUTUM_IP_ADDRESS=") {
 			cidr = env_vars[i][len("TUTUM_IP_ADDRESS="):]
 			break
@@ -84,7 +83,6 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
-		log.Println("Attaching Containers")
 		err := AttachContainer(c, container.ID)
 		if err != nil {
 			log.Println("Attaching Containers failed")
@@ -111,10 +109,8 @@ func ContainerAttachThread(c *docker.Client) error {
 	timeout := time.After(1 * time.Second)
 
 	for {
-		log.Println("LOOP: Container")
 		select {
 		case msg := <-listener:
-			log.Println("New Container Event")
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
@@ -134,11 +130,10 @@ func discovering() {
 	e := make(chan error)
 	nodes.DiscoverPeers()
 	go tutum.TutumEvents(c, e)
+Loop:
 	for {
-		log.Println("LOOP: Node")
 		select {
 		case event := <-c:
-			log.Println("New Node Event")
 			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
 				err := nodes.DiscoverPeers()
 				if err != nil {
