@@ -33,17 +33,13 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	if cidr != "" {
 		tries := 0
 		for {
+
 			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
 			_, err := cmd.StdoutPipe()
 			if err != nil {
-				tries++
-				time.Sleep(2 * time.Second)
-				log.Println("Stdout error")
-				if tries > 3 {
-					return err
-				}
+				return err
 			}
 
 			if err := cmd.Start(); err != nil {
