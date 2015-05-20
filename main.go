@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
@@ -84,7 +85,6 @@ func ContainerAttachThread(c *docker.Client) error {
 			log.Println("Attaching Containers failed")
 			return err
 		}
-		time.Sleep(2 * time.Second)
 	}
 
 	err = c.AddEventListener(listener)
@@ -113,7 +113,6 @@ func ContainerAttachThread(c *docker.Client) error {
 					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
 					break
 				}
-				time.Sleep(2 * time.Second)
 			}
 		case <-timeout:
 			break
@@ -121,7 +120,8 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 }
 
-func discovering() {
+func discovering(wg *sync.WaitGroup) {
+	defer wg.Done()
 	c := make(chan tutum.Event)
 	e := make(chan error)
 	nodes.DiscoverPeers()
@@ -135,14 +135,24 @@ Loop:
 				if err != nil {
 					log.Println(err)
 				}
-				time.Sleep(2 * time.Second)
 			}
 			break
 		case err := <-e:
 			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
 			time.Sleep(5 * time.Second)
-			go discovering()
+			go discovering(wg)
 			break Loop
+		}
+	}
+}
+
+func containerThread(client *docker.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		err := ContainerAttachThread(client)
+		if err != nil {
+			log.Println(err)
+			time.Sleep(15 * time.Second)
 		}
 	}
 }
@@ -162,30 +172,38 @@ func connectToDocker() (*docker.Client, error) {
 func main() {
 
 	log.Println("Start running daemon")
-
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
 	//Init Docker client
 	client, err := connectToDocker()
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
+	log.Println("Starting container discovery goroutine")
+	go containerThread(client, wg)
 
-	node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	nodes.Tutum_Node_Public_Ip = node.Public_ip
-	log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
-	if os.Getenv("TUTUM_AUTH") != "" {
-		log.Println("Detected Tutum API access - starting peer discovery thread")
-		go discovering()
-	}
+	tries := 0
+Loop:
 	for {
-		err := ContainerAttachThread(client)
+		node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
 		if err != nil {
+			tries++
 			log.Println(err)
-			time.Sleep(15 * time.Second)
+			if tries > 3 {
+				time.Sleep(5 * time.Second)
+				tries = 0
+			}
+			continue Loop
+		} else {
+			nodes.Tutum_Node_Public_Ip = node.Public_ip
+			log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
+			if os.Getenv("TUTUM_AUTH") != "" {
+				log.Println("Detected Tutum API access - starting peer discovery goroutine")
+				go discovering(wg)
+				break Loop
+			}
 		}
 	}
+	wg.Wait()
 }
