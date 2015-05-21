@@ -190,8 +190,9 @@ Loop:
 		if err != nil {
 			tries++
 			log.Println(err)
+			time.Sleep(5 * time.Second)
 			if tries > 3 {
-				time.Sleep(5 * time.Second)
+				time.Sleep(30 * time.Second)
 				tries = 0
 			}
 			continue Loop
