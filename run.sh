@@ -33,7 +33,6 @@ fi
 
 echo "=> Current weave router status"
 /weave --local status | grep -qv "weave container is not present; have you launched it?"
-if
 
 touch /.weave_launched
 
