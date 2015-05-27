@@ -107,6 +107,9 @@ func ContainerAttachThread(c *docker.Client) error {
 	for {
 		select {
 		case msg := <-listener:
+			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
+				os.Exit(1)
+			}
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
 				err := AttachContainer(c, msg.ID)
 				if err != nil {
@@ -190,8 +193,9 @@ Loop:
 		if err != nil {
 			tries++
 			log.Println(err)
+			time.Sleep(5 * time.Second)
 			if tries > 3 {
-				time.Sleep(5 * time.Second)
+				time.Sleep(30 * time.Second)
 				tries = 0
 			}
 			continue Loop
