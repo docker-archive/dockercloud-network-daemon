@@ -143,6 +143,7 @@ Loop:
 		case err := <-e:
 			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
 			time.Sleep(5 * time.Second)
+			wg.Add(1)
 			go discovering(wg)
 			break Loop
 		}
