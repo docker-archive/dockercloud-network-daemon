@@ -17,7 +17,7 @@ var (
 
 func DiscoverPeers() error {
 	tries := 0
-	log.Println("[NODE DISCOVERY Started]")
+	log.Println("[NODE DISCOVERY STARTED]")
 	for {
 		node_ips := []string{}
 		nodeList, err := tutum.ListNodes()
@@ -34,6 +34,8 @@ func DiscoverPeers() error {
 				}
 			}
 		}
+		log.Println("[NODE DISCOVERY]: Current nodes available")
+		log.Println(node_ips)
 
 		var diff1 []string
 
@@ -48,6 +50,7 @@ func DiscoverPeers() error {
 				}
 			}
 			if !found {
+				log.Println("[NODE DISCOVERY UPDATE]: Some nodes are not peers")
 				diff1 = append(diff1, s1)
 			}
 		}
@@ -75,6 +78,7 @@ func DiscoverPeers() error {
 				}
 			}
 			if !found {
+				log.Println("[NODE DISCOVERY UPDATE]: Some peers are not nodes anymore")
 				diff2 = append(diff2, s1)
 			}
 		}
@@ -92,7 +96,7 @@ func DiscoverPeers() error {
 		peer_ips = node_ips
 		break
 	}
-	log.Println("[NODE DISCOVERY Stopped]")
+	log.Println("[NODE DISCOVERY STOPPED]")
 	return nil
 }
 
@@ -101,7 +105,7 @@ func connectToPeers(node_ip string) error {
 Loop:
 	for {
 
-		log.Printf("Connecting to newly discovered peer: %s", node_ip)
+		log.Printf("[NODE DISCOVERY]: Connecting to newly discovered peer: %s", node_ip)
 		cmd := exec.Command("/weave", "--local", "connect", node_ip)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -134,14 +138,14 @@ Loop:
 			tries++
 			time.Sleep(2 * time.Second)
 			if tries > 3 {
-				log.Printf("Unable to 'weave connect: %s %s", stdout, stderr)
+				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave connect: %s %s", stdout, stderr)
 				return err
 			}
 		} else {
 			break Loop
 		}
 	}
-	log.Println("Discover Peers: done!")
+	log.Println("[NODE DISCOVERY]: Discover Peers: done!")
 	return nil
 }
 
@@ -149,7 +153,7 @@ func forgetPeers(node_ip string) error {
 	tries := 0
 Loop:
 	for {
-		log.Printf("Forgetting peer: %s", node_ip)
+		log.Printf("[NODE DISCOVERY]: Forgetting peer: %s", node_ip)
 		cmd := exec.Command("/weave", "--local", "forget", node_ip)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -182,13 +186,13 @@ Loop:
 			tries++
 			time.Sleep(2 * time.Second)
 			if tries > 3 {
-				log.Printf("Unable to 'weave forget: %s %s", stdout, stderr)
+				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave forget: %s %s", stdout, stderr)
 				return err
 			}
 		} else {
 			break Loop
 		}
 	}
-	log.Println("Forget Peers: done!")
+	log.Println("[NODE DISCOVERY]: Forget Peers: done!")
 	return nil
 }
