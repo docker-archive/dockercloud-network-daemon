@@ -126,11 +126,16 @@ func ContainerAttachThread(c *docker.Client) error {
 			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
 				os.Exit(1)
 			}
-			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
-				err := AttachContainer(c, msg.ID)
-				if err != nil {
-					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
+			if msg.Status == "start" {
+				if stringInSlice(msg.ID, containerAttached) {
 					break
+				} else {
+					err := AttachContainer(c, msg.ID)
+					if err != nil {
+						log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
+						break
+					}
+					containerAttached = append(containerAttached, msg.ID)
 				}
 				containerAttached = append(containerAttached, msg.ID)
 			}
@@ -142,6 +147,12 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			for _, container := range containers {
+				for _, name := range container.Names {
+					if strings.HasPrefix(name, "weaveworks/weave:") && !strings.HasPrefix(container.Status, "Up") {
+						os.Exit(1)
+					}
+				}
+
 				if stringInSlice(container.ID, containerAttached) {
 					break
 				} else {
