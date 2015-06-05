@@ -9,15 +9,19 @@ docker version
 if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
     echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
 else
-    if [ ! -f "/.weave_launched" ]; then
-        WEAVE_IMAGES=$(docker images | grep weaveworks/weave | wc -l)
-        if [ ${WEAVE_IMAGES} -eq "0" ]; then
+    ROUTER_PRESENT=`docker ps -a | grep -c "weave:${VERSION}" || true`
+    if [ "${ROUTER_PRESENT}" = "0" ]; then
+        echo "=> No weave router version ${VERSION} found"
+        WEAVE_IMAGES=`docker images | grep -c "weaveworks/weave:${VERSION}" || true`
+        if [ "${WEAVE_IMAGES}" = "0" ]; then
             echo "=> Setting up weave images"
             /weave --local setup
         fi
 
         echo "=> Resetting weave on the node"
         /weave --local reset
+    else
+        echo "=> Weave router version ${VERSION} found"
     fi
 
     if [ ! -z "${WEAVE_PASSWORD}" ]; then
@@ -32,9 +36,8 @@ else
 fi
 
 echo "=> Current weave router status"
-/weave --local status | grep -qv "weave container is not present; have you launched it?"
-
-touch /.weave_launched
+/weave --local status
+docker ps | grep -q "weave:${VERSION}"
 
 docker logs -f weave &
 
