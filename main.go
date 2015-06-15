@@ -84,7 +84,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 }
 
 func ContainerAttachThread(c *docker.Client) error {
-
+	var weaveID = ""
 	listener := make(chan *docker.APIEvents)
 	containerAttached := []string{}
 
@@ -96,6 +96,11 @@ func ContainerAttachThread(c *docker.Client) error {
 
 	for _, container := range containers {
 		log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
+
+		if strings.HasPrefix(container.Image, "weaveworks/weave:") {
+			weaveID = container.ID
+		}
+
 		err := AttachContainer(c, container.ID)
 		if err != nil {
 			log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
@@ -126,15 +131,26 @@ func ContainerAttachThread(c *docker.Client) error {
 			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
 				os.Exit(1)
 			}
-			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/weave") {
-				err := AttachContainer(c, msg.ID)
-				if err != nil {
-					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
+			if msg.Status == "start" {
+				if stringInSlice(msg.ID, containerAttached) {
 					break
+				} else {
+					err := AttachContainer(c, msg.ID)
+					if err != nil {
+						log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
+						break
+					}
+					containerAttached = append(containerAttached, msg.ID)
 				}
-				containerAttached = append(containerAttached, msg.ID)
 			}
 		case <-timeout:
+
+			weave, err := c.InspectContainer(weaveID)
+
+			if weave.State.Running != true {
+				os.Exit(1)
+			}
+
 			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 			if err != nil {
 				log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
