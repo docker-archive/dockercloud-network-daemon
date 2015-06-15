@@ -132,6 +132,7 @@ func ContainerAttachThread(c *docker.Client) error {
 					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
 					break
 				}
+				containerAttached = append(containerAttached, msg.ID)
 			}
 		case <-timeout:
 			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
