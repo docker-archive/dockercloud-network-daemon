@@ -13,13 +13,27 @@ import (
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
+const version = "0.15.2"
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func AttachContainer(c *docker.Client, container_id string) error {
+	log.Println("[CONTAINER ATTACH]: Inspecting Containers " + container_id)
 	inspect, err := c.InspectContainer(container_id)
 
 	if err != nil {
-		log.Println("Inspecting Containers failed")
+		log.Println("[CONTAINER ATTACH]: Inspecting Containers failed")
 		return err
 	}
+
+	log.Println("[CONTAINER ATTACH]: Attaching container " + container_id)
 
 	cidr := ""
 	env_vars := inspect.Config.Env
@@ -46,7 +60,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			if err := cmd.Start(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("Start weave cmd failed")
+				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed")
 				if tries > 3 {
 					return err
 				}
@@ -55,7 +69,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			if err := cmd.Wait(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("Wait weave cmd failed")
+				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed")
 				if tries > 3 {
 					return err
 				}
@@ -72,24 +86,27 @@ func AttachContainer(c *docker.Client, container_id string) error {
 func ContainerAttachThread(c *docker.Client) error {
 
 	listener := make(chan *docker.APIEvents)
+	containerAttached := []string{}
 
 	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
 	if err != nil {
-		log.Println("Listing Containers failed")
+		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
 		return err
 	}
 
 	for _, container := range containers {
+		log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
 		err := AttachContainer(c, container.ID)
 		if err != nil {
-			log.Println("Attaching Containers failed")
+			log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
 			return err
 		}
+		containerAttached = append(containerAttached, container.ID)
 	}
 
 	err = c.AddEventListener(listener)
 	if err != nil {
-		log.Println("Listening Containers Events failed")
+		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
 		return err
 	}
 
@@ -102,9 +119,8 @@ func ContainerAttachThread(c *docker.Client) error {
 		return nil
 	}()
 
-	timeout := time.After(1 * time.Second)
-
 	for {
+		timeout := time.Tick(2 * time.Minute)
 		select {
 		case msg := <-listener:
 			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
@@ -118,6 +134,42 @@ func ContainerAttachThread(c *docker.Client) error {
 				}
 			}
 		case <-timeout:
+			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
+			if err != nil {
+				log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
+				return err
+			}
+
+			for _, container := range containers {
+				if stringInSlice(container.ID, containerAttached) {
+					break
+				} else {
+					log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
+					err := AttachContainer(c, container.ID)
+					if err != nil {
+						log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
+						return err
+					}
+					containerAttached = append(containerAttached, container.ID)
+
+					err = c.AddEventListener(listener)
+					if err != nil {
+						log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
+						return err
+					}
+
+					defer func() error {
+
+						err = c.RemoveEventListener(listener)
+						if err != nil {
+							return err
+						}
+						return nil
+					}()
+
+				}
+				break
+			}
 			break
 		}
 	}
@@ -127,7 +179,9 @@ func discovering(wg *sync.WaitGroup) {
 	defer wg.Done()
 	c := make(chan tutum.Event)
 	e := make(chan error)
+
 	nodes.DiscoverPeers()
+
 	go tutum.TutumEvents(c, e)
 Loop:
 	for {
@@ -190,6 +244,7 @@ func main() {
 	tries := 0
 Loop:
 	for {
+		tutum.SetUserAgent("weave-daemon/" + version)
 		node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
 		if err != nil {
 			tries++
