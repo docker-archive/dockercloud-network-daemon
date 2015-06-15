@@ -124,6 +124,12 @@ func ContainerAttachThread(c *docker.Client) error {
 		return nil
 	}()
 
+	if weaveID == "" {
+		os.Exit(1)
+	}
+
+	log.Println("WEAVE ID is : " + weaveID)
+
 	for {
 		timeout := time.Tick(2 * time.Minute)
 		select {
@@ -146,6 +152,9 @@ func ContainerAttachThread(c *docker.Client) error {
 		case <-timeout:
 
 			weave, err := c.InspectContainer(weaveID)
+			if err != nil {
+				return err
+			}
 
 			if weave.State.Running != true {
 				os.Exit(1)
@@ -183,7 +192,6 @@ func ContainerAttachThread(c *docker.Client) error {
 						}
 						return nil
 					}()
-
 				}
 				break
 			}
