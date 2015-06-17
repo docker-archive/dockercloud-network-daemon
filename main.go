@@ -95,18 +95,25 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
+
+		runningContainer, err := c.InspectContainer(container.ID)
+
+		if err != nil {
+			return err
+		}
+
 		log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
 
 		if strings.HasPrefix(container.Image, "weaveworks/weave:") {
 			weaveID = container.ID
 		}
 
-		err := AttachContainer(c, container.ID)
+		err = AttachContainer(c, container.ID)
 		if err != nil {
 			log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
 			return err
 		}
-		containerAttached = append(containerAttached, container.ID)
+		containerAttached = append(containerAttached, container.ID+runningContainer.State.StartedAt.Format(time.RFC3339))
 	}
 
 	err = c.AddEventListener(listener)
@@ -138,7 +145,13 @@ func ContainerAttachThread(c *docker.Client) error {
 				os.Exit(1)
 			}
 			if msg.Status == "start" {
-				if stringInSlice(msg.ID, containerAttached) {
+				startingContainer, err := c.InspectContainer(msg.ID)
+
+				if err != nil {
+					return err
+				}
+
+				if stringInSlice(msg.ID+startingContainer.State.StartedAt.Format(time.RFC3339), containerAttached) {
 					break
 				} else {
 					err := AttachContainer(c, msg.ID)
@@ -146,7 +159,7 @@ func ContainerAttachThread(c *docker.Client) error {
 						log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
 						break
 					}
-					containerAttached = append(containerAttached, msg.ID)
+					containerAttached = append(containerAttached, msg.ID+startingContainer.State.StartedAt.Format(time.RFC3339))
 				}
 			}
 		case <-timeout:
@@ -167,7 +180,13 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			for _, container := range containers {
-				if stringInSlice(container.ID, containerAttached) {
+				runningContainer, err := c.InspectContainer(container.ID)
+
+				if err != nil {
+					return err
+				}
+
+				if stringInSlice(container.ID+runningContainer.State.StartedAt.Format(time.RFC3339), containerAttached) {
 					break
 				} else {
 					log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
@@ -176,7 +195,8 @@ func ContainerAttachThread(c *docker.Client) error {
 						log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
 						return err
 					}
-					containerAttached = append(containerAttached, container.ID)
+
+					containerAttached = append(containerAttached, container.ID+runningContainer.State.StartedAt.Format(time.RFC3339))
 
 					err = c.AddEventListener(listener)
 					if err != nil {
