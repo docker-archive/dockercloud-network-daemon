@@ -24,6 +24,22 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+func inHashWithValue(containerAttached map[string]string, id string, value string) bool {
+	if val, ok := containerAttached[id]; ok && val == value {
+		return true
+	}
+	return false
+}
+
+func removeMissing(containerAttached map[string]string, containerList []string) map[string]string {
+	for k, _ := range containerAttached {
+		if !stringInSlice(k, containerList) {
+			delete(containerAttached, k)
+		}
+	}
+	return containerAttached
+}
+
 func AttachContainer(c *docker.Client, container_id string) error {
 	log.Println("[CONTAINER ATTACH]: Inspecting Containers " + container_id)
 	inspect, err := c.InspectContainer(container_id)
@@ -152,7 +168,7 @@ func ContainerAttachThread(c *docker.Client) error {
 					return err
 				}
 
-				if val, ok := containerAttached[msg.ID]; ok && val == startingContainer.State.StartedAt.Format(time.RFC3339) {
+				if inHashWithValue(containerAttached, msg.ID, startingContainer.State.StartedAt.Format(time.RFC3339)) {
 					break
 				} else {
 					err := AttachContainer(c, msg.ID)
@@ -184,11 +200,7 @@ func ContainerAttachThread(c *docker.Client) error {
 
 				containerList = append(containerList, container.ID)
 
-				for k, _ := range containerAttached {
-					if !stringInSlice(k, containerList) {
-						delete(containerAttached, k)
-					}
-				}
+				containerAttached = removeMissing(containerAttached, containerList)
 
 				containerList = []string{}
 
@@ -197,8 +209,7 @@ func ContainerAttachThread(c *docker.Client) error {
 				if err != nil {
 					return err
 				}
-
-				if val, ok := containerAttached[container.ID]; ok && val == runningContainer.State.StartedAt.Format(time.RFC3339) {
+				if inHashWithValue(containerAttached, container.ID, runningContainer.State.StartedAt.Format(time.RFC3339)) {
 					break
 				} else {
 					log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
@@ -232,6 +243,16 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 }
 
+func nodeEventHandler(eventType string, state string) error {
+	if eventType == "node" && (state == "Deployed" || state == "Terminated") {
+		err := nodes.DiscoverPeers()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func discovering(wg *sync.WaitGroup) {
 	defer wg.Done()
 	c := make(chan tutum.Event)
@@ -244,11 +265,9 @@ Loop:
 	for {
 		select {
 		case event := <-c:
-			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-				err := nodes.DiscoverPeers()
-				if err != nil {
-					log.Println(err)
-				}
+			err := nodeEventHandler(event.Type, event.State)
+			if err != nil {
+				log.Println(err)
 			}
 			break
 		case err := <-e:
