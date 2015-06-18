@@ -15,11 +15,40 @@ var (
 	peer_ips             = []string{""}
 )
 
+func nodeAppend(nodeList tutum.NodeListResponse) []string {
+	node_ips := []string{}
+	for i := range nodeList.Objects {
+		state := nodeList.Objects[i].State
+
+		if state == "Deployed" || state == "Unreachable" {
+			if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
+				node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
+			}
+		}
+	}
+	return node_ips
+}
+
+func compareNodePeer(array1, array2, diff []string) []string {
+	for _, s1 := range array1 {
+		found := false
+		for _, s2 := range array2 {
+			if s1 == s2 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diff = append(diff, s1)
+		}
+	}
+	return diff
+}
+
 func DiscoverPeers() error {
 	tries := 0
 	log.Println("[NODE DISCOVERY STARTED]")
 	for {
-		node_ips := []string{}
 		nodeList, err := tutum.ListNodes()
 		if err != nil {
 			return err
@@ -29,15 +58,8 @@ func DiscoverPeers() error {
 			return nil
 		}
 
-		for i := range nodeList.Objects {
-			state := nodeList.Objects[i].State
+		node_ips := nodeAppend(nodeList)
 
-			if state == "Deployed" || state == "Unreachable" {
-				if nodeList.Objects[i].Public_ip != Tutum_Node_Public_Ip {
-					node_ips = append(node_ips, nodeList.Objects[i].Public_ip)
-				}
-			}
-		}
 		log.Println("[NODE DISCOVERY]: Current nodes available")
 		log.Println(node_ips)
 
@@ -45,19 +67,7 @@ func DiscoverPeers() error {
 
 		//Checking if there are nodes that are not in the peer_ips list
 
-		for _, s1 := range node_ips {
-			found := false
-			for _, s2 := range peer_ips {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			if !found {
-				log.Println("[NODE DISCOVERY UPDATE]: Some nodes are not peers")
-				diff1 = append(diff1, s1)
-			}
-		}
+		diff1 = compareNodePeer(node_ips, peer_ips, diff1)
 
 		for _, i := range diff1 {
 			err := connectToPeers(i)
@@ -73,19 +83,7 @@ func DiscoverPeers() error {
 
 		//Checking if there are peers that are not in the node_ips list
 
-		for _, s1 := range peer_ips {
-			found := false
-			for _, s2 := range node_ips {
-				if s1 == s2 {
-					found = true
-					break
-				}
-			}
-			if !found {
-				log.Println("[NODE DISCOVERY UPDATE]: Some peers are not nodes anymore")
-				diff2 = append(diff2, s1)
-			}
-		}
+		diff2 = compareNodePeer(peer_ips, node_ips, diff2)
 
 		for _, i := range diff2 {
 			err := forgetPeers(i)
@@ -105,6 +103,7 @@ func DiscoverPeers() error {
 }
 
 func connectToPeers(node_ip string) error {
+	log.Println("[NODE DISCOVERY UPDATE]: Some nodes are not peers")
 	tries := 0
 Loop:
 	for {
@@ -154,6 +153,7 @@ Loop:
 }
 
 func forgetPeers(node_ip string) error {
+	log.Println("[NODE DISCOVERY UPDATE]: Some peers are not nodes anymore")
 	tries := 0
 Loop:
 	for {

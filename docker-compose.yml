@@ -1,6 +1,3 @@
 sut:
-  command:
-      - go test -v ./... -race
-      - ./build.sh
-      - docker build -t weave-daemon .
-      - docker tag weave-daemon tutum/weave-daemon:staging
+  command: go test -v ./... -race
+  build: .

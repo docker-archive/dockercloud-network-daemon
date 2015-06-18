@@ -13,7 +13,7 @@ import (
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
-const version = "0.15.2"
+const version = "0.15.3"
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -112,9 +112,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
-
 		runningContainer, err := c.InspectContainer(container.ID)
-
 		if err != nil {
 			return err
 		}
@@ -140,7 +138,6 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	defer func() error {
-
 		err = c.RemoveEventListener(listener)
 		if err != nil {
 			return err
@@ -197,15 +194,11 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			for _, container := range containers {
-
 				containerList = append(containerList, container.ID)
-
 				containerAttached = removeMissing(containerAttached, containerList)
-
 				containerList = []string{}
 
 				runningContainer, err := c.InspectContainer(container.ID)
-
 				if err != nil {
 					return err
 				}
@@ -228,7 +221,6 @@ func ContainerAttachThread(c *docker.Client) error {
 					}
 
 					defer func() error {
-
 						err = c.RemoveEventListener(listener)
 						if err != nil {
 							return err
