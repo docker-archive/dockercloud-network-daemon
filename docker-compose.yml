@@ -1,3 +1,0 @@
-sut:
-  command: go test -v ./... -race
-  build: .
