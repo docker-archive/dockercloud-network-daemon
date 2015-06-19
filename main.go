@@ -245,15 +245,7 @@ func nodeEventHandler(eventType string, state string) error {
 	return nil
 }
 
-func discovering(wg *sync.WaitGroup) {
-	defer wg.Done()
-	c := make(chan tutum.Event)
-	e := make(chan error)
-
-	nodes.DiscoverPeers()
-
-	go tutum.TutumEvents(c, e)
-Loop:
+func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
 	for {
 		select {
 		case event := <-c:
@@ -267,9 +259,20 @@ Loop:
 			time.Sleep(5 * time.Second)
 			wg.Add(1)
 			go discovering(wg)
-			break Loop
+			return
 		}
 	}
+}
+
+func discovering(wg *sync.WaitGroup) {
+	defer wg.Done()
+	c := make(chan tutum.Event)
+	e := make(chan error)
+
+	nodes.DiscoverPeers()
+
+	go tutum.TutumEvents(c, e)
+	tutumEventHandler(wg, c, e)
 }
 
 func containerThread(client *docker.Client, wg *sync.WaitGroup) {
