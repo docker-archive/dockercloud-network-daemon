@@ -2,11 +2,21 @@ machine:
   services:
     - docker
 deployment:
+  test-build:
+    branch: test-build
+    commands:
+      - docker run -it -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock:rw tutum/builder:staging tutum/weave-daemon:test-build
+      - docker build -t weave-test integration_tests
+      - docker run -it -v $HOME/.dockercfg:/root/.dockercfg:ro weave-test:latest
   staging:
     branch: staging
     commands:
-      - docker run --rm -it -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock:rw tutum/builder:staging tutum/weave-daemon:staging
+      - docker run -it -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock:rw tutum/builder:staging tutum/weave-daemon:staging
+      - docker build -t weave-test integration_tests
+      - docker run -it -v $HOME/.dockercfg:/root/.dockercfg:ro weave-test:latest
   master:
     branch: master
     commands:
-      - docker run --rm -it -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock:rw tutum/builder:staging tutum/weave-daemon:master
+      - docker run -it -v $(pwd):/app -v /var/run/docker.sock:/var/run/docker.sock:rw tutum/builder:staging tutum/weave-daemon:master
+      - docker build -t weave-test integration_tests
+      - docker run -it -v $HOME/.dockercfg:/root/.dockercfg:ro weave-test:latest
