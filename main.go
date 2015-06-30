@@ -241,6 +241,7 @@ func discovering(wg *sync.WaitGroup) {
 
 	go tutum.TutumEvents(c, e)
 Loop:
+	//ticker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case event := <-c:
