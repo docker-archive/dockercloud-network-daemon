@@ -300,9 +300,9 @@ func main() {
 
 	tries := 0
 	if nodes.Tutum_Node_Api_Uri != "" {
+		tutum.SetUserAgent("weave-daemon/" + version)
 	Loop:
 		for {
-			tutum.SetUserAgent("weave-daemon/" + version)
 			node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
 			if err != nil {
 				tries++
