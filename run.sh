@@ -26,12 +26,10 @@ else
 
     if [ ! -z "${WEAVE_PASSWORD}" ]; then
         echo "=> Running: weave launch -password XXXXXX ${WEAVE_LAUNCH}"
-        export WEAVE_DOCKER_ARGS="-e LOGSPOUT=ignore"
         /weave --local launch -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
     else
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
-        export WEAVE_DOCKER_ARGS="-e LOGSPOUT=ignore"
         /weave --local launch ${WEAVE_LAUNCH} || true
     fi
     sleep 2

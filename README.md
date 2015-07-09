@@ -1,7 +1,13 @@
 tutum/weave-daemon
 ==================
 
-```
+System container used by [Tutum](http://www.tutum.co/) to provide a secure overlay network between nodes using [Weave](http://weave.works/net/). System containers are launched, configured and managed automatically on every node.
+
+Performs two main tasks: attach containers to the weave network when they are started, and connect to newly discovered peers (via Tutum's API).
+
+
+## Usage
+
     docker run -d \
       --net host \
       --privileged \
@@ -12,14 +18,11 @@ tutum/weave-daemon
       -e WEAVE_LAUNCH="" \
       -e WEAVE_PASSWORD="pass" \
       tutum/weave-daemon
-```
 
-**Arguments**
 
-```
-    WEAVE_LAUNCH      argument for "weave launch" command, possible values:
-                      "", when you launch the first weave router
-                      "<ip/hostname>", when you want weave to join other's network
-                      "**None**", do not run "weave launch"
-    WEAVE_PASSWORD    password for weave network, empty by default
-```
+## Arguments
+
+Key | Description
+----|------------
+WEAVE_LAUNCH | Argument for `weave launch` command, possible values: `""`, when you launch the first weave router; `"<ip/hostname>"`, when you want weave to join other's network; `"**None**"`, to not run `weave launch`
+WEAVE_PASSWORD | Shared password used to secure the weave network
