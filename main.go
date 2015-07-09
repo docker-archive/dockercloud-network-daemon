@@ -49,7 +49,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 		tries := 0
 		for {
 
-			log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
 			_, err := cmd.StdoutPipe()
@@ -74,6 +73,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 					return err
 				}
 			} else {
+				log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 				break
 			}
 		}
@@ -299,26 +299,28 @@ func main() {
 	go containerThread(client, wg)
 
 	tries := 0
-Loop:
-	for {
+	if nodes.Tutum_Node_Api_Uri != "" {
 		tutum.SetUserAgent("weave-daemon/" + version)
-		node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
-		if err != nil {
-			tries++
-			log.Println(err)
-			time.Sleep(5 * time.Second)
-			if tries > 3 {
-				time.Sleep(30 * time.Second)
-				tries = 0
-			}
-			continue Loop
-		} else {
-			nodes.Tutum_Node_Public_Ip = node.Public_ip
-			log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
-			if os.Getenv("TUTUM_AUTH") != "" {
-				log.Println("Detected Tutum API access - starting peer discovery goroutine")
-				go discovering(wg)
-				break Loop
+	Loop:
+		for {
+			node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
+			if err != nil {
+				tries++
+				log.Println(err)
+				time.Sleep(5 * time.Second)
+				if tries > 3 {
+					time.Sleep(30 * time.Second)
+					tries = 0
+				}
+				continue Loop
+			} else {
+				nodes.Tutum_Node_Public_Ip = node.Public_ip
+				log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
+				if os.Getenv("TUTUM_AUTH") != "" {
+					log.Println("Detected Tutum API access - starting peer discovery goroutine")
+					go discovering(wg)
+					break Loop
+				}
 			}
 		}
 	}

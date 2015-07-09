@@ -25,6 +25,10 @@ func DiscoverPeers() error {
 			return err
 		}
 
+		if len(nodeList.Objects) == 0 {
+			return nil
+		}
+
 		for i := range nodeList.Objects {
 			state := nodeList.Objects[i].State
 
