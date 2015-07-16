@@ -1,9 +1,11 @@
 package main // import "github.com/tutumcloud/weave-daemon"
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +15,20 @@ import (
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
-const version = "0.15.3"
+const (
+	version    = "0.16.0"
+	DockerPath = "/usr/local/bin/docker"
+)
+
+type Event struct {
+	Node       string `json:"node",omitempty`
+	Status     string `json:"status"`
+	ID         string `json:"id"`
+	From       string `json:"from"`
+	Time       int64  `json:"time"`
+	HandleTime int64  `json:"handletime"`
+	ExitCode   string `json:"exitcode"`
+}
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -92,16 +107,59 @@ func AttachContainer(c *docker.Client, container_id string) error {
 				break
 			}
 		}
-		log.Printf("%s: adding to weave with IP %s", container_id, cidr)
 	} else {
 		log.Printf("%s: cannot find the IP address to add to weave", container_id)
 	}
 	return nil
 }
 
+func monitorDockerEvents(c chan Event, e chan error) {
+	log.Println("docker events starts")
+	cmd := exec.Command(DockerPath, "events")
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		e <- err
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			eventStr := scanner.Text()
+			if eventStr != "" {
+				re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
+				terms := re.FindStringSubmatch(eventStr)
+				if len(terms) == 5 {
+					var event Event
+					event.ID = terms[2]
+					event.From = terms[3]
+					event.Status = terms[4]
+					c <- event
+				}
+			}
+		}
+		if scanner.Err() == nil {
+			e <- err
+		} else {
+			e <- err
+		}
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		e <- err
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		e <- err
+	}
+	log.Println("docker events stops")
+}
+
 func ContainerAttachThread(c *docker.Client) error {
 	var weaveID = ""
-	listener := make(chan *docker.APIEvents)
+	listener := make(chan Event)
+	e := make(chan error)
 	containerAttached := make(map[string]string)
 	containerList := []string{}
 
@@ -131,19 +189,7 @@ func ContainerAttachThread(c *docker.Client) error {
 		containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
 	}
 
-	err = c.AddEventListener(listener)
-	if err != nil {
-		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
-		return err
-	}
-
-	defer func() error {
-		err = c.RemoveEventListener(listener)
-		if err != nil {
-			return err
-		}
-		return nil
-	}()
+	go monitorDockerEvents(listener, e)
 
 	if weaveID == "" {
 		os.Exit(1)
@@ -176,6 +222,8 @@ func ContainerAttachThread(c *docker.Client) error {
 					containerAttached[msg.ID] = startingContainer.State.StartedAt.Format(time.RFC3339)
 				}
 			}
+		case err := <-e:
+			return err
 		case <-timeout:
 
 			weave, err := c.InspectContainer(weaveID)
@@ -213,20 +261,6 @@ func ContainerAttachThread(c *docker.Client) error {
 					}
 
 					containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
-
-					err = c.AddEventListener(listener)
-					if err != nil {
-						log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
-						return err
-					}
-
-					defer func() error {
-						err = c.RemoveEventListener(listener)
-						if err != nil {
-							return err
-						}
-						return nil
-					}()
 				}
 				break
 			}

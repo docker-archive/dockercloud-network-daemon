@@ -30,7 +30,7 @@ else
     else
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
-        /weave --local launch ${WEAVE_LAUNCH} || true
+        /weave --local launch -nodisco ${WEAVE_LAUNCH} || true
     fi
     sleep 2
 fi
