@@ -37,6 +37,9 @@ fi
 
 echo "=> Current weave router status"
 /weave --local status
+
+echo "=> Running weave expose"
+/weave --local expose 10.7.255.254/16
 docker ps | grep -q "weave:${VERSION}"
 
 docker logs -f weave &
