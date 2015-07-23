@@ -3,4 +3,4 @@ sut:
   working_dir: /go/src/github.com/tutumcloud/weave-daemon
   command: bash -c "go get -v && go test -v ./... -race"
   volumes:
-      - "/app:/go/src/github.com/tutumcloud/weave-daemon"
+      - "/src:/go/src/github.com/tutumcloud/weave-daemon"
