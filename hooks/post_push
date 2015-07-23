@@ -45,10 +45,10 @@ sleep 60
 
 echo "=> Pinging hello world containers"
 docker run -d --name=pingC -e TUTUM_IP_ADDRESS=$IP3 tutum/hello-world
-docker exec -it pingC ping 10.7.0.2 -c 15
-docker exec -it pingC ping 10.7.0.1 -c 15
+docker exec -t pingC ping 10.7.0.2 -c 15
+docker exec -t pingC ping 10.7.0.1 -c 15
 
 echo "=> Launching container with --net=host and pinging hello world containers"
 docker run -d --name=pingHOST tutum/hello-world
-docker exec -it pingHOST ping 10.7.0.2 -c 15
-docker exec -it pingHOST ping 10.7.0.1 -c 15
+docker exec -t pingHOST ping 10.7.0.2 -c 15
+docker exec -t pingHOST ping 10.7.0.1 -c 15
