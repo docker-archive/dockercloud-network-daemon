@@ -12,7 +12,7 @@ import (
 var (
 	Tutum_Node_Api_Uri   = os.Getenv("TUTUM_NODE_API_URI")
 	Tutum_Node_Public_Ip = ""
-	peer_ips             = []string{""}
+	peer_ips             = []string{}
 )
 
 func nodeAppend(nodeList tutum.NodeListResponse) []string {
@@ -82,7 +82,6 @@ func DiscoverPeers() error {
 		var diff2 []string
 
 		//Checking if there are peers that are not in the node_ips list
-
 		diff2 = compareNodePeer(peer_ips, node_ips, diff2)
 
 		for _, i := range diff2 {
