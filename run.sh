@@ -19,7 +19,7 @@ else
         fi
 
         echo "=> Resetting weave on the node"
-        /weave --local reset
+        /weave --local reset || true
     else
         echo "=> Weave router version ${VERSION} found"
     fi
