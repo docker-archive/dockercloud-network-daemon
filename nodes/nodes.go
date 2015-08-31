@@ -51,6 +51,7 @@ func DiscoverPeers() error {
 	for {
 		nodeList, err := tutum.ListNodes()
 		if err != nil {
+			time.Sleep(60 * time.Second)
 			return err
 		}
 

@@ -291,7 +291,7 @@ func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
 			break
 		case err := <-e:
 			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 			wg.Add(1)
 			go discovering(wg)
 			return
@@ -358,7 +358,7 @@ func main() {
 				log.Println(err)
 				time.Sleep(5 * time.Second)
 				if tries > 3 {
-					time.Sleep(30 * time.Second)
+					time.Sleep(60 * time.Second)
 					tries = 0
 				}
 				continue Loop
