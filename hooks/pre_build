@@ -1,12 +1,5 @@
 #!/bin/bash
 set -e
-export VERSION=1.0.1
-echo "=> Downloading weave version $VERSION"
-if [ ! -f "weave" ]; then
-  curl -sSLo weave https://github.com/weaveworks/weave/releases/download/v$VERSION/weave
-fi
-chmod +x weave
-
 echo "=> Building the binary"
 docker run --privileged \
   -v $(pwd):/src \
