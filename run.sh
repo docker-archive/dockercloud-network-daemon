@@ -26,13 +26,13 @@ else
 
     if [ ! -z "${WEAVE_PASSWORD}" ]; then
         echo "=> Running: weave launch -password XXXXXX ${WEAVE_LAUNCH}"
-        echo "=> Peer count: ${PEER_COUNT}"
-        /weave --local launch -initpeercount ${PEER_COUNT} -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
+        echo "=> Peer count: ${TUTUM_PEER_COUNT}"
+        /weave --local launch -initpeercount ${TUTUM_PEER_COUNT} -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
     else
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
-        echo "=> Peer count: ${PEER_COUNT}"
-        /weave --local launch -nodisco -initpeercount ${PEER_COUNT} ${WEAVE_LAUNCH} || true
+        echo "=> Peer count: ${TUTUM_PEER_COUNT}"
+        /weave --local launch -nodisco -initpeercount ${TUTUM_PEER_COUNT} ${WEAVE_LAUNCH} || true
     fi
     sleep 2
 fi
