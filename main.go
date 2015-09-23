@@ -1,9 +1,11 @@
 package main // import "github.com/tutumcloud/weave-daemon"
 
 import (
+	"bufio"
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +15,20 @@ import (
 	"github.com/tutumcloud/weave-daemon/nodes"
 )
 
-const version = "0.15.2"
+const (
+	version    = "0.16.0"
+	DockerPath = "/usr/local/bin/docker"
+)
+
+type Event struct {
+	Node       string `json:"node",omitempty`
+	Status     string `json:"status"`
+	ID         string `json:"id"`
+	From       string `json:"from"`
+	Time       int64  `json:"time"`
+	HandleTime int64  `json:"handletime"`
+	ExitCode   string `json:"exitcode"`
+}
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -22,6 +37,22 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+func inHashWithValue(containerAttached map[string]string, id string, value string) bool {
+	if val, ok := containerAttached[id]; ok && val == value {
+		return true
+	}
+	return false
+}
+
+func removeMissing(containerAttached map[string]string, containerList []string) map[string]string {
+	for k, _ := range containerAttached {
+		if !stringInSlice(k, containerList) {
+			delete(containerAttached, k)
+		}
+	}
+	return containerAttached
 }
 
 func AttachContainer(c *docker.Client, container_id string) error {
@@ -48,7 +79,6 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	if cidr != "" {
 		tries := 0
 		for {
-
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
 			_, err := cmd.StdoutPipe()
@@ -69,6 +99,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 				tries++
 				time.Sleep(2 * time.Second)
 				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed")
+				log.Println(err)
 				if tries > 3 {
 					return err
 				}
@@ -83,9 +114,53 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	return nil
 }
 
+func monitorDockerEvents(c chan Event, e chan error) {
+	log.Println("docker events starts")
+	cmd := exec.Command(DockerPath, "events")
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		e <- err
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			eventStr := scanner.Text()
+			if eventStr != "" {
+				re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
+				terms := re.FindStringSubmatch(eventStr)
+				if len(terms) == 5 {
+					var event Event
+					event.ID = terms[2]
+					event.From = terms[3]
+					event.Status = terms[4]
+					c <- event
+				}
+			}
+		}
+		if scanner.Err() == nil {
+			e <- err
+		} else {
+			e <- err
+		}
+	}()
+
+	err = cmd.Start()
+	if err != nil {
+		e <- err
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		e <- err
+	}
+	log.Println("docker events stops")
+}
+
 func ContainerAttachThread(c *docker.Client) error {
 	var weaveID = ""
-	listener := make(chan *docker.APIEvents)
+	listener := make(chan Event)
+	e := make(chan error)
 	containerAttached := make(map[string]string)
 	containerList := []string{}
 
@@ -96,9 +171,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
-
 		runningContainer, err := c.InspectContainer(container.ID)
-
 		if err != nil {
 			return err
 		}
@@ -117,20 +190,7 @@ func ContainerAttachThread(c *docker.Client) error {
 		containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
 	}
 
-	err = c.AddEventListener(listener)
-	if err != nil {
-		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
-		return err
-	}
-
-	defer func() error {
-
-		err = c.RemoveEventListener(listener)
-		if err != nil {
-			return err
-		}
-		return nil
-	}()
+	go monitorDockerEvents(listener, e)
 
 	if weaveID == "" {
 		os.Exit(1)
@@ -152,7 +212,7 @@ func ContainerAttachThread(c *docker.Client) error {
 					return err
 				}
 
-				if val, ok := containerAttached[msg.ID]; ok && val == startingContainer.State.StartedAt.Format(time.RFC3339) {
+				if inHashWithValue(containerAttached, msg.ID, startingContainer.State.StartedAt.Format(time.RFC3339)) {
 					break
 				} else {
 					err := AttachContainer(c, msg.ID)
@@ -163,6 +223,8 @@ func ContainerAttachThread(c *docker.Client) error {
 					containerAttached[msg.ID] = startingContainer.State.StartedAt.Format(time.RFC3339)
 				}
 			}
+		case err := <-e:
+			return err
 		case <-timeout:
 
 			weave, err := c.InspectContainer(weaveID)
@@ -181,24 +243,15 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			for _, container := range containers {
-
 				containerList = append(containerList, container.ID)
-
-				for k, _ := range containerAttached {
-					if !stringInSlice(k, containerList) {
-						delete(containerAttached, k)
-					}
-				}
-
+				containerAttached = removeMissing(containerAttached, containerList)
 				containerList = []string{}
 
 				runningContainer, err := c.InspectContainer(container.ID)
-
 				if err != nil {
 					return err
 				}
-
-				if val, ok := containerAttached[container.ID]; ok && val == runningContainer.State.StartedAt.Format(time.RFC3339) {
+				if inHashWithValue(containerAttached, container.ID, runningContainer.State.StartedAt.Format(time.RFC3339)) {
 					break
 				} else {
 					log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
@@ -209,25 +262,39 @@ func ContainerAttachThread(c *docker.Client) error {
 					}
 
 					containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
-
-					err = c.AddEventListener(listener)
-					if err != nil {
-						log.Println("[CONTAINER ATTACH THREAD ERROR]: Listening Containers Events failed")
-						return err
-					}
-
-					defer func() error {
-
-						err = c.RemoveEventListener(listener)
-						if err != nil {
-							return err
-						}
-						return nil
-					}()
 				}
 				break
 			}
 			break
+		}
+	}
+}
+
+func nodeEventHandler(eventType string, state string) error {
+	if eventType == "node" && (state == "Deployed" || state == "Terminated") {
+		err := nodes.DiscoverPeers()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
+	for {
+		select {
+		case event := <-c:
+			err := nodeEventHandler(event.Type, event.State)
+			if err != nil {
+				log.Println(err)
+			}
+			break
+		case err := <-e:
+			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
+			time.Sleep(10 * time.Second)
+			wg.Add(1)
+			go discovering(wg)
+			return
 		}
 	}
 }
@@ -240,25 +307,7 @@ func discovering(wg *sync.WaitGroup) {
 	nodes.DiscoverPeers()
 
 	go tutum.TutumEvents(c, e)
-Loop:
-	for {
-		select {
-		case event := <-c:
-			if event.Type == "node" && (event.State == "Deployed" || event.State == "Terminated") {
-				err := nodes.DiscoverPeers()
-				if err != nil {
-					log.Println(err)
-				}
-			}
-			break
-		case err := <-e:
-			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
-			time.Sleep(5 * time.Second)
-			wg.Add(1)
-			go discovering(wg)
-			break Loop
-		}
-	}
+	tutumEventHandler(wg, c, e)
 }
 
 func containerThread(client *docker.Client, wg *sync.WaitGroup) {
@@ -309,7 +358,7 @@ func main() {
 				log.Println(err)
 				time.Sleep(5 * time.Second)
 				if tries > 3 {
-					time.Sleep(30 * time.Second)
+					time.Sleep(60 * time.Second)
 					tries = 0
 				}
 				continue Loop

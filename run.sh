@@ -19,24 +19,29 @@ else
         fi
 
         echo "=> Resetting weave on the node"
-        /weave --local reset
+        /weave --local reset || true
     else
         echo "=> Weave router version ${VERSION} found"
     fi
 
     if [ ! -z "${WEAVE_PASSWORD}" ]; then
         echo "=> Running: weave launch -password XXXXXX ${WEAVE_LAUNCH}"
-        /weave --local launch -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
+        echo "=> Peer count: ${TUTUM_PEER_COUNT}"
+        /weave --local launch -initpeercount ${TUTUM_PEER_COUNT} -password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
     else
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
-        /weave --local launch ${WEAVE_LAUNCH} || true
+        echo "=> Peer count: ${TUTUM_PEER_COUNT}"
+        /weave --local launch -nodisco -initpeercount ${TUTUM_PEER_COUNT} ${WEAVE_LAUNCH} || true
     fi
     sleep 2
 fi
 
 echo "=> Current weave router status"
 /weave --local status
+
+echo "=> Running weave expose"
+/weave --local expose 10.7.255.254/16
 docker ps | grep -q "weave:${VERSION}"
 
 docker logs -f weave &
