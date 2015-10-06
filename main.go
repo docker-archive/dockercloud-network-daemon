@@ -286,6 +286,7 @@ func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
 		case event := <-c:
 			err := nodeEventHandler(event.Type, event.State)
 			if err != nil {
+				time.Sleep(10 * time.Second)
 				log.Println(err)
 			}
 			break
