@@ -281,6 +281,7 @@ func nodeEventHandler(eventType string, state string) error {
 }
 
 func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
+Loop:
 	for {
 		select {
 		case event := <-c:
@@ -294,7 +295,7 @@ func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
 			time.Sleep(10 * time.Second)
 			wg.Add(1)
 			go discovering(wg)
-			return
+			break Loop
 		}
 	}
 }
