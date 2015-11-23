@@ -171,23 +171,24 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
-		runningContainer, err := c.InspectContainer(container.ID)
-		if err != nil {
-			return err
-		}
+		if !strings.HasPrefix(container.Image, "weaveworks/") {
+			runningContainer, err := c.InspectContainer(container.ID)
+			if err != nil {
+				return err
+			}
+			log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
 
-		log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
+			err = AttachContainer(c, container.ID)
+			if err != nil {
+				log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
+				return err
+			}
+			containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
+		}
 
 		if strings.HasPrefix(container.Image, "weaveworks/weave:") {
 			weaveID = container.ID
 		}
-
-		err = AttachContainer(c, container.ID)
-		if err != nil {
-			log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
-			return err
-		}
-		containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
 	}
 
 	go monitorDockerEvents(listener, e)
