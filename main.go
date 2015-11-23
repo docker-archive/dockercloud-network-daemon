@@ -139,8 +139,10 @@ func monitorDockerEvents(c chan Event, e chan error) {
 			}
 		}
 		if scanner.Err() == nil {
+			log.Println("EOF docker event")
 			e <- err
 		} else {
+			log.Println("Scan error")
 			e <- err
 		}
 	}()
@@ -203,10 +205,10 @@ func ContainerAttachThread(c *docker.Client) error {
 		timeout := time.Tick(2 * time.Minute)
 		select {
 		case msg := <-listener:
-			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
+			if msg.Status == "die" && msg.ID == weaveID {
 				os.Exit(1)
 			}
-			if msg.Status == "start" {
+			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/") {
 				startingContainer, err := c.InspectContainer(msg.ID)
 
 				if err != nil {
@@ -225,6 +227,7 @@ func ContainerAttachThread(c *docker.Client) error {
 				}
 			}
 		case err := <-e:
+			log.Println("MONITOR ISSUE")
 			return err
 		case <-timeout:
 
