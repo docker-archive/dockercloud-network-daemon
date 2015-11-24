@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	version    = "0.19.0"
+	version    = "0.20.0"
 	DockerPath = "/usr/local/bin/docker"
 )
 
@@ -171,23 +171,24 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 
 	for _, container := range containers {
-		runningContainer, err := c.InspectContainer(container.ID)
-		if err != nil {
-			return err
-		}
+		if !strings.HasPrefix(container.Image, "weaveworks/") {
+			runningContainer, err := c.InspectContainer(container.ID)
+			if err != nil {
+				return err
+			}
+			log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
 
-		log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
+			err = AttachContainer(c, container.ID)
+			if err != nil {
+				log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
+				return err
+			}
+			containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
+		}
 
 		if strings.HasPrefix(container.Image, "weaveworks/weave:") {
 			weaveID = container.ID
 		}
-
-		err = AttachContainer(c, container.ID)
-		if err != nil {
-			log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
-			return err
-		}
-		containerAttached[container.ID] = runningContainer.State.StartedAt.Format(time.RFC3339)
 	}
 
 	go monitorDockerEvents(listener, e)
@@ -202,10 +203,10 @@ func ContainerAttachThread(c *docker.Client) error {
 		timeout := time.Tick(2 * time.Minute)
 		select {
 		case msg := <-listener:
-			if msg.Status == "die" && strings.HasPrefix(msg.From, "weaveworks/weave:") {
+			if msg.Status == "die" && msg.ID == weaveID {
 				os.Exit(1)
 			}
-			if msg.Status == "start" {
+			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/") {
 				startingContainer, err := c.InspectContainer(msg.ID)
 
 				if err != nil {
@@ -281,12 +282,12 @@ func nodeEventHandler(eventType string, state string) error {
 }
 
 func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
+Loop:
 	for {
 		select {
 		case event := <-c:
 			err := nodeEventHandler(event.Type, event.State)
 			if err != nil {
-				time.Sleep(10 * time.Second)
 				log.Println(err)
 			}
 			break
@@ -295,7 +296,7 @@ func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
 			time.Sleep(10 * time.Second)
 			wg.Add(1)
 			go discovering(wg)
-			return
+			break Loop
 		}
 	}
 }
