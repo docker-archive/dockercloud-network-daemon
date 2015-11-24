@@ -139,10 +139,8 @@ func monitorDockerEvents(c chan Event, e chan error) {
 			}
 		}
 		if scanner.Err() == nil {
-			log.Println("EOF docker event")
 			e <- err
 		} else {
-			log.Println("Scan error")
 			e <- err
 		}
 	}()
@@ -227,7 +225,6 @@ func ContainerAttachThread(c *docker.Client) error {
 				}
 			}
 		case err := <-e:
-			log.Println("MONITOR ISSUE")
 			return err
 		case <-timeout:
 
