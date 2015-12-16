@@ -20,9 +20,19 @@ func testEq(a, b []string) bool {
 	return true
 }
 
-func Test_removeDuplicates(t *testing.T) {
+func Test_CIDRToIP(t *testing.T) {
 	a := []string{"192.168.130.23/24", "192.168.130.24/24", "192.168.130.23/24", "192.168.130.24/24", "192.168.130.22/24"}
-	a_without_duplicates := []string{"192.168.130.23/24", "192.168.130.24/24", "192.168.130.22/24"}
+	b := []string{"192.168.130.23", "192.168.130.24", "192.168.130.23", "192.168.130.24", "192.168.130.22"}
+
+	a = CIDRToIP(a)
+	if !testEq(a, b) {
+		t.Error("Unexpected node ips list")
+	}
+}
+
+func Test_removeDuplicates(t *testing.T) {
+	a := []string{"192.168.130.23", "192.168.130.24", "192.168.130.23", "192.168.130.24", "192.168.130.22"}
+	a_without_duplicates := []string{"192.168.130.23", "192.168.130.24", "192.168.130.22"}
 
 	a = removeDuplicates(a)
 

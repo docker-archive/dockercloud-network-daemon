@@ -170,6 +170,18 @@ func compareNodePeer(array1, array2, diff []string) []string {
 	return diff
 }
 
+func CIDRToIP(array []string) []string {
+	IpArray := []string{}
+	for _, elem := range array {
+		IP, _, err := net.ParseCIDR(elem)
+		if err != nil {
+			log.Println(err)
+		}
+		IpArray = append(IpArray, IP.String())
+	}
+	return IpArray
+}
+
 func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 	if cidr1 != cidr2 {
 		_, ipNet1, err1 := net.ParseCIDR(cidr1)
@@ -231,6 +243,7 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 		node_private_ips = append(node_private_ips, temp...)
 	}
 
+	node_private_ips = CIDRToIP(node_private_ips)
 	return removeDuplicates(node_public_ips), removeDuplicates(node_private_ips)
 }
 
@@ -267,23 +280,22 @@ func DiscoverPeers() error {
 					return err
 				}
 			}
+		}
 
-			var diff3 []string
+		var diff3 []string
 
-			//Checking if there are nodes that are not in the peer_ips list
+		//Checking if there are nodes that are not in the peer_ips list
 
-			diff3 = compareNodePeer(node_public_ips, peer_ips_public, diff3)
+		diff3 = compareNodePeer(node_public_ips, peer_ips_public, diff3)
 
-			for _, i := range diff3 {
-				err := connectToPeers(i)
-				if err != nil {
-					tries++
-					if tries > 3 {
-						return err
-					}
+		for _, i := range diff3 {
+			err := connectToPeers(i)
+			if err != nil {
+				tries++
+				if tries > 3 {
+					return err
 				}
 			}
-
 		}
 
 		//IF TERMINATED EVENT
