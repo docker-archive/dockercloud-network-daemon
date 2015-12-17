@@ -222,9 +222,16 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 			for _, networkAvailableCIDR := range value.cidrs {
 			Loop1:
 				for _, network := range Tutum_Node_CIDR {
-					if CheckIfSameNetwork(network.CIDR, networkAvailableCIDR.CIDR) {
-						temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
-						break Loop1
+					if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
+						if CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
+							temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
+							break Loop1
+						}
+					} else {
+						if CheckIfSameNetwork(network.CIDR, networkAvailableCIDR.CIDR) {
+							temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
+							break Loop1
+						}
 					}
 				}
 				if len(temp1) == 0 && value.Public_Ip != Tutum_Node_Public_Ip {
