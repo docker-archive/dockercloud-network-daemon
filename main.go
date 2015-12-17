@@ -364,6 +364,7 @@ func main() {
 				}
 				continue Loop
 			} else {
+				nodes.Tutum_NodeCluster_Uri = node.Node_cluster
 				nodes.Tutum_Node_Public_Ip = node.Public_ip
 				nodes.Tutum_Node_Uuid = node.Uuid
 
