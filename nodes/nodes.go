@@ -185,19 +185,17 @@ func CIDRToIP(array []string) []string {
 }
 
 func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
-	_, ipNet1, err1 := net.ParseCIDR(cidr1)
-
+	ip1, ipNet1, err1 := net.ParseCIDR(cidr1)
 	if err1 != nil {
 		log.Println(err1)
 	}
 
-	_, ipNet2, err2 := net.ParseCIDR(cidr2)
-
+	ip2, ipNet2, err2 := net.ParseCIDR(cidr2)
 	if err2 != nil {
 		log.Println(err2)
 	}
 
-	if string(ipNet1.IP) == string(ipNet2.IP) {
+	if ipNet1.Contains(ip2) || ipNet2.Contains(ip1) {
 		return true
 	} else {
 		return false
@@ -224,9 +222,11 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 			Loop1:
 				for _, network := range Tutum_Node_CIDR {
 					if networkAvailableCIDR.CIDR != network.CIDR {
-						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" && value.cluster == Tutum_NodeCluster_Uri && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
-							temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
-							break Loop1
+						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
+							if value.cluster == Tutum_NodeCluster_Uri && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
+								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
+								break Loop1
+							}
 						} else {
 							if CheckIfSameNetwork(network.CIDR, networkAvailableCIDR.CIDR) {
 								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)

@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"os"
 	"testing"
 
 	"github.com/tutumcloud/go-tutum/tutum"
@@ -41,18 +42,20 @@ func Test_removeDuplicates(t *testing.T) {
 	}
 }
 
-func Test_nodeAppend(t *testing.T) {
+func Test_nodeAppendAWS(t *testing.T) {
 	Tutum_Node_Public_Ip = "178.100.50.34"
-	Tutum_Node_CIDR = []tutum.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "192.168.1.1/16"}}
+	Tutum_NodeCluster_Uri = "/1/2/3"
+	Tutum_Node_CIDR = []tutum.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
 
+	os.Setenv("TUTUM_PRIVATE_CIDR", "10.77.0.0/16")
 	nodeList := tutum.NodeListResponse{Objects: []tutum.Node{
-		{Uuid: "1", State: "Terminated", Public_ip: "10.0.0.1", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "192.168.1.2/16"}}},
-		{Uuid: "2", State: "Deployed", Public_ip: "10.0.0.2", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "192.168.1.3/16"}, {Name: "eth1", CIDR: "192.168.99.101/24"}, {Name: "lo", CIDR: "127.0.0.1/8"}, {Name: "weave", CIDR: "10.7.255.254/16"}}},
-		{Uuid: "3", State: "Deployed", Public_ip: "10.0.0.3", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "192.168.1.4/16"}, {Name: "eth1", CIDR: "192.168.99.100/24"}, {Name: "lo", CIDR: "127.0.0.1/8"}, {Name: "weave", CIDR: "10.7.255.254/16"}}},
-		{Uuid: "4", State: "Deployed", Public_ip: "10.0.0.4", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "192.168.30.5/32"}, {Name: "eth1", CIDR: "192.168.99.102/24"}, {Name: "lo", CIDR: "127.0.0.1/8"}, {Name: "weave", CIDR: "10.7.255.254/16"}}}}}
+		{Uuid: "1", State: "Deployed", Node_cluster: "/1/2/3", Public_ip: "10.0.0.1", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "10.77.250.17/17"}}},
+		{Uuid: "2", State: "Deployed", Node_cluster: "/1/2/2", Public_ip: "10.0.0.2", Private_ips: []tutum.Network{{Name: "eth0", CIDR: "10.77.32.16/17"}}}}}
+
 	node_public_ips, node_private_ips := NodeAppend(nodeList)
-	expectedList := []string{"10.0.0.4"}
-	expectedListPrivate := []string{"192.168.1.3", "192.168.1.4"}
+
+	expectedList := []string{"10.0.0.2"}
+	expectedListPrivate := []string{"10.77.250.17"}
 
 	if !testEq(node_public_ips, expectedList) && !testEq(node_private_ips, expectedListPrivate) {
 		t.Error("Unexpected node ips list")
