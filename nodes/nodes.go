@@ -18,7 +18,7 @@ import (
 type NodeNetwork struct {
 	Public_Ip string
 	cidrs     []tutum.Network
-	cluster   string
+	region    string
 }
 
 type PostForm struct {
@@ -30,13 +30,13 @@ const (
 )
 
 var (
-	Tutum_Node_Api_Uri    = os.Getenv("TUTUM_NODE_API_URI")
-	Tutum_Node_Public_Ip  = ""
-	Tutum_Node_CIDR       = []tutum.Network{}
-	Tutum_Node_Uuid       = ""
-	Tutum_NodeCluster_Uri = ""
-	peer_ips              = []string{}
-	peer_ips_public       = []string{}
+	Tutum_Node_Api_Uri   = os.Getenv("TUTUM_NODE_API_URI")
+	Tutum_Node_Public_Ip = ""
+	Tutum_Node_CIDR      = []tutum.Network{}
+	Tutum_Node_Uuid      = ""
+	Tutum_Region         = ""
+	peer_ips             = []string{}
+	peer_ips_public      = []string{}
 )
 
 func removeDuplicates(elements []string) []string {
@@ -210,7 +210,7 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 	for i := range nodeList.Objects {
 		state := nodeList.Objects[i].State
 		if state == "Deployed" || state == "Unreachable" {
-			networkAvailable[nodeList.Objects[i].Uuid] = NodeNetwork{cidrs: nodeList.Objects[i].Private_ips, Public_Ip: nodeList.Objects[i].Public_ip, cluster: nodeList.Objects[i].Node_cluster}
+			networkAvailable[nodeList.Objects[i].Uuid] = NodeNetwork{cidrs: nodeList.Objects[i].Private_ips, Public_Ip: nodeList.Objects[i].Public_ip, region: nodeList.Objects[i].Region}
 		}
 	}
 
@@ -223,7 +223,7 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 				for _, network := range Tutum_Node_CIDR {
 					if networkAvailableCIDR.CIDR != network.CIDR {
 						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
-							if value.cluster == Tutum_NodeCluster_Uri && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
+							if value.region == Tutum_Region && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
 								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
 								break Loop1
 							}

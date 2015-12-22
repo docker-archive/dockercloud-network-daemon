@@ -21,7 +21,7 @@ const (
 )
 
 type Event struct {
-	Node       string `json:"node",omitempty`
+	Node       string `json:"node,omitempty"`
 	Status     string `json:"status"`
 	ID         string `json:"id"`
 	From       string `json:"from"`
@@ -364,7 +364,7 @@ func main() {
 				}
 				continue Loop
 			} else {
-				nodes.Tutum_NodeCluster_Uri = node.Node_cluster
+				nodes.Tutum_Region = node.Region
 				nodes.Tutum_Node_Public_Ip = node.Public_ip
 				nodes.Tutum_Node_Uuid = node.Uuid
 
