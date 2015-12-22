@@ -42,6 +42,28 @@ func Test_removeDuplicates(t *testing.T) {
 	}
 }
 
+func Test_IsInPrivateRange(t *testing.T) {
+	IP1 := "159.8.238.60/16"
+	response1 := IsInPrivateRange(IP1)
+
+	IP2 := "192.168.1.12/16"
+	response2 := IsInPrivateRange(IP2)
+
+	IP3 := "10.136.220.69/32"
+	response3 := IsInPrivateRange(IP3)
+
+	IP4 := "172.19.27.18/16"
+	response4 := IsInPrivateRange(IP4)
+
+	if response1 != false {
+		t.Error("Unexpected response, got true expected false")
+	}
+
+	if response2 != true || response3 != true || response4 != true {
+		t.Error("Unexpected response, got false expected true")
+	}
+}
+
 func Test_nodeAppendAWS(t *testing.T) {
 	Tutum_Node_Public_Ip = "178.100.50.34"
 	Tutum_Region = "/1/2/3"

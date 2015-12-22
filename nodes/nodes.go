@@ -184,6 +184,34 @@ func CIDRToIP(array []string) []string {
 	return IpArray
 }
 
+func IsInPrivateRange(cidr string) bool {
+	ip, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, ipNet2, err := net.ParseCIDR("10.0.0.0/8")
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, ipNet3, err := net.ParseCIDR("172.16.0.0/12")
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, ipNet4, err := net.ParseCIDR("192.168.0.0/16")
+	if err != nil {
+		log.Println(err)
+	}
+
+	if ipNet2.Contains(ip) || ipNet3.Contains(ip) || ipNet4.Contains(ip) {
+		return true
+	}
+
+	return false
+}
+
 func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 	ip1, ipNet1, err1 := net.ParseCIDR(cidr1)
 	if err1 != nil {
@@ -221,7 +249,7 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 			for _, networkAvailableCIDR := range value.cidrs {
 			Loop1:
 				for _, network := range Tutum_Node_CIDR {
-					if networkAvailableCIDR.CIDR != network.CIDR {
+					if networkAvailableCIDR.CIDR != network.CIDR && IsInPrivateRange(networkAvailableCIDR.CIDR) && IsInPrivateRange(network.CIDR) {
 						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
 							if value.region == Tutum_Region && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
 								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
