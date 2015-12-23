@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	version    = "0.20.1"
+	Version    = "0.21.0"
 	DockerPath = "/usr/local/bin/docker"
 )
 
 type Event struct {
-	Node       string `json:"node",omitempty`
+	Node       string `json:"node,omitempty"`
 	Status     string `json:"status"`
 	ID         string `json:"id"`
 	From       string `json:"from"`
@@ -271,8 +271,8 @@ func ContainerAttachThread(c *docker.Client) error {
 	}
 }
 
-func nodeEventHandler(eventType string, state string) error {
-	if eventType == "node" && (state == "Deployed" || state == "Terminated") {
+func nodeEventHandler(eventType string, state string, action string) error {
+	if (eventType == "node" && state == "Deployed" && action == "update") || (eventType == "node" && state == "Terminated") {
 		err := nodes.DiscoverPeers()
 		if err != nil {
 			return err
@@ -286,7 +286,7 @@ Loop:
 	for {
 		select {
 		case event := <-c:
-			err := nodeEventHandler(event.Type, event.State)
+			err := nodeEventHandler(event.Type, event.State, event.Action)
 			if err != nil {
 				log.Println(err)
 			}
@@ -336,8 +336,7 @@ func connectToDocker() (*docker.Client, error) {
 }
 
 func main() {
-
-	log.Println("Start running daemon")
+	log.Println("===> Start running daemon")
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	//Init Docker client
@@ -346,12 +345,12 @@ func main() {
 		log.Println(err)
 		os.Exit(1)
 	}
-	log.Println("Starting container discovery goroutine")
+	log.Println("===> Starting container discovery goroutine")
 	go containerThread(client, wg)
 
 	tries := 0
 	if nodes.Tutum_Node_Api_Uri != "" {
-		tutum.SetUserAgent("weave-daemon/" + version)
+		tutum.SetUserAgent("weave-daemon/" + Version)
 	Loop:
 		for {
 			node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
@@ -365,10 +364,16 @@ func main() {
 				}
 				continue Loop
 			} else {
+				nodes.Tutum_Region = node.Region
 				nodes.Tutum_Node_Public_Ip = node.Public_ip
+				nodes.Tutum_Node_Uuid = node.Uuid
+
+				log.Println("===> Posting interface data to database")
+				nodes.PostInterfaceData(os.Getenv("TUTUM_REST_HOST") + nodes.Tutum_Node_Api_Uri)
+
 				log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
 				if os.Getenv("TUTUM_AUTH") != "" {
-					log.Println("Detected Tutum API access - starting peer discovery goroutine")
+					log.Println("===> Detected Tutum API access - starting peer discovery goroutine")
 					go discovering(wg)
 					break Loop
 				}

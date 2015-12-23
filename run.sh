@@ -24,15 +24,24 @@ else
         echo "=> Weave router version ${VERSION} found"
     fi
 
+    PRIVATE_SUBNETS=$(ip addr show | grep "eth[0-9]" | grep -oE "(10.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}/[0-9]+|172.(16|17|18|19|2[0-9]|30|31).[0-9]{1,3}.[0-9]{1,3}/[0-9]+|192.168.[0-9]{1,3}.[
+0-9]{1,3}/[0-9]+)" | tr '\n' ',' | head -c -1)
+    if [ ! -z "${TUTUM_PRIVATE_CIDR}" ]; then
+        # TODO: check which private subnets detected can be trusted
+        # TRUSTED_SUBNETS="${PRIVATE_SUBNETS},${TUTUM_PRIVATE_CIDR}"
+        TRUSTED_SUBNETS="${TUTUM_PRIVATE_CIDR}"
+    fi
+    echo "=> Marking the following private subnets as trusted (unencrypted): ${TRUSTED_SUBNETS:-none}"
+
     if [ ! -z "${WEAVE_PASSWORD}" ]; then
         echo "=> Running: weave launch -password XXXXXX ${WEAVE_LAUNCH}"
         echo "=> Peer count: ${TUTUM_PEER_COUNT}"
-        /weave --local launch-router --ipalloc-range=10.128.0.0/10 --no-dns --no-discovery --init-peer-count ${TUTUM_PEER_COUNT} --password ${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
+        /weave --local launch-router --ipalloc-range=10.128.0.0/10 --trusted-subnets=${TRUSTED_SUBNETS} --no-dns --no-discovery --init-peer-count=${TUTUM_PEER_COUNT} --password=${WEAVE_PASSWORD} ${WEAVE_LAUNCH} || true
     else
         echo "!! WARNING: No \$WEAVE_PASSWORD set!"
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
         echo "=> Peer count: ${TUTUM_PEER_COUNT}"
-        /weave --local launch-router --ipalloc-range=10.128.0.0/10 --no-dns --no-discovery --init-peer-count ${TUTUM_PEER_COUNT} ${WEAVE_LAUNCH} || true
+        /weave --local launch-router --ipalloc-range=10.128.0.0/10 --trusted-subnets=${TRUSTED_SUBNETS} --no-dns --no-discovery --init-peer-count=${TUTUM_PEER_COUNT} ${WEAVE_LAUNCH} || true
     fi
     sleep 2
 fi
