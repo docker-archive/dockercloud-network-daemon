@@ -81,15 +81,18 @@ func AttachContainer(c *docker.Client, container_id string) error {
 		for {
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
-			_, err := cmd.StdoutPipe()
-			if err != nil {
+			if _, err := cmd.StdoutPipe(); err != nil {
+				return err
+			}
+
+			if _, err := cmd.StderrPipe(); err != nil {
 				return err
 			}
 
 			if err := cmd.Start(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed")
+				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed:",  err)
 				if tries > 3 {
 					return err
 				}
@@ -98,18 +101,17 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			if err := cmd.Wait(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed")
-				log.Println(err)
+				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed:", err)
 				if tries > 3 {
 					return err
 				}
 			} else {
-				log.Printf("%s: adding to weave with IP %s", container_id, cidr)
+				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s with IP %s", container_id, cidr)
 				break
 			}
 		}
 	} else {
-		log.Printf("%s: cannot find the IP address to add to weave", container_id)
+		log.Printf("[CONTAINER ATTACH]: Ignoring container %s - cannot find the IP address to add to weave", container_id)
 	}
 	return nil
 }
