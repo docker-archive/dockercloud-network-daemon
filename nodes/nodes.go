@@ -12,17 +12,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tutumcloud/go-tutum/tutum"
+	"github.com/tutumcloud/go-dockercloud/dockercloud"
 )
 
 type NodeNetwork struct {
 	Public_Ip string
-	cidrs     []tutum.Network
+	cidrs     []dockercloud.Network
 	region    string
 }
 
 type PostForm struct {
-	Interfaces []tutum.Network `json:"private_ips"`
+	Interfaces []dockercloud.Network `json:"private_ips"`
 }
 
 const (
@@ -30,13 +30,13 @@ const (
 )
 
 var (
-	Tutum_Node_Api_Uri   = os.Getenv("TUTUM_NODE_API_URI")
-	Tutum_Node_Public_Ip = ""
-	Tutum_Node_CIDR      = []tutum.Network{}
-	Tutum_Node_Uuid      = ""
-	Tutum_Region         = ""
-	peer_ips             = []string{}
-	peer_ips_public      = []string{}
+	Node_Api_Uri    = os.Getenv("TUTUM_NODE_API_URI")
+	Node_Public_Ip  = ""
+	Node_CIDR       = []dockercloud.Network{}
+	Node_Uuid       = ""
+	Region          = ""
+	peer_ips        = []string{}
+	peer_ips_public = []string{}
 )
 
 func removeDuplicates(elements []string) []string {
@@ -63,13 +63,13 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func getInterfaces() []tutum.Network {
+func getInterfaces() []dockercloud.Network {
 	rawInterfaces, err := net.Interfaces()
 	if err != nil {
 		log.Fatalf("Cannot get network interfaces: %s", err.Error())
 	}
 
-	ifs := make([]tutum.Network, 0, 0)
+	ifs := make([]dockercloud.Network, 0, 0)
 	for _, iface := range rawInterfaces {
 		name := strings.ToLower(iface.Name)
 		addrs, err := iface.Addrs()
@@ -88,7 +88,7 @@ func getInterfaces() []tutum.Network {
 					continue
 				}
 
-				ifs = append(ifs, tutum.Network{Name: name, CIDR: cidr})
+				ifs = append(ifs, dockercloud.Network{Name: name, CIDR: cidr})
 			}
 		}
 	}
@@ -106,7 +106,7 @@ func sendData(url string, data []byte) error {
 	if tutumAuth != "" {
 		req.Header.Add("Authorization", tutumAuth)
 	}
-	req.Header.Add("User-Agent", "weave-daemon/"+Version)
+	req.Header.Add("User-Agent", "network-daemon/"+Version)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -144,7 +144,7 @@ func Send(url string, data []byte) {
 
 func PostInterfaceData(url string) {
 	interfaces := getInterfaces()
-	Tutum_Node_CIDR = interfaces
+	Node_CIDR = interfaces
 
 	data := PostForm{Interfaces: interfaces}
 	json, err := json.Marshal(data)
@@ -230,7 +230,7 @@ func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 	}
 }
 
-func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
+func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 	networkAvailable := make(map[string]NodeNetwork)
 	node_public_ips := []string{}
 	node_private_ips := []string{}
@@ -248,10 +248,10 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 		if len(value.cidrs) > 0 {
 			for _, networkAvailableCIDR := range value.cidrs {
 			Loop1:
-				for _, network := range Tutum_Node_CIDR {
+				for _, network := range Node_CIDR {
 					if networkAvailableCIDR.CIDR != network.CIDR && IsInPrivateRange(networkAvailableCIDR.CIDR) && IsInPrivateRange(network.CIDR) {
 						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
-							if value.region == Tutum_Region && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
+							if value.region == Region && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
 								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
 								break Loop1
 							}
@@ -263,14 +263,14 @@ func NodeAppend(nodeList tutum.NodeListResponse) ([]string, []string) {
 						}
 					}
 				}
-				if len(temp1) == 0 && value.Public_Ip != Tutum_Node_Public_Ip {
+				if len(temp1) == 0 && value.Public_Ip != Node_Public_Ip {
 					node_public_ips = append(node_public_ips, value.Public_Ip)
 				} else {
 					temp = append(temp, temp1...)
 				}
 			}
 		} else {
-			if value.Public_Ip != Tutum_Node_Public_Ip {
+			if value.Public_Ip != Node_Public_Ip {
 				node_public_ips = append(node_public_ips, value.Public_Ip)
 			}
 		}
@@ -287,7 +287,7 @@ func DiscoverPeers() error {
 	tries := 0
 	log.Println("[NODE DISCOVERY STARTED]")
 	for {
-		nodeList, err := tutum.ListNodes()
+		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
 			time.Sleep(60 * time.Second)
 			return err

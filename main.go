@@ -1,4 +1,4 @@
-package main // import "github.com/tutumcloud/weave-daemon"
+package main // import "github.com/tutumcloud/network-daemon"
 
 import (
 	"bufio"
@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/tutumcloud/go-tutum/tutum"
-	"github.com/tutumcloud/weave-daemon/nodes"
+	"github.com/tutumcloud/go-dockercloud/dockercloud"
+	"github.com/tutumcloud/network-daemon/nodes"
 )
 
 const (
@@ -92,7 +92,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 			if err := cmd.Start(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed:",  err)
+				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed:", err)
 				if tries > 3 {
 					return err
 				}
@@ -283,7 +283,7 @@ func nodeEventHandler(eventType string, state string, action string) error {
 	return nil
 }
 
-func tutumEventHandler(wg *sync.WaitGroup, c chan tutum.Event, e chan error) {
+func tutumEventHandler(wg *sync.WaitGroup, c chan dockercloud.Event, e chan error) {
 Loop:
 	for {
 		select {
@@ -305,12 +305,12 @@ Loop:
 
 func discovering(wg *sync.WaitGroup) {
 	defer wg.Done()
-	c := make(chan tutum.Event)
+	c := make(chan dockercloud.Event)
 	e := make(chan error)
 
 	nodes.DiscoverPeers()
 
-	go tutum.TutumEvents(c, e)
+	go dockercloud.Events(c, e)
 	tutumEventHandler(wg, c, e)
 }
 
@@ -351,11 +351,11 @@ func main() {
 	go containerThread(client, wg)
 
 	tries := 0
-	if nodes.Tutum_Node_Api_Uri != "" {
-		tutum.SetUserAgent("weave-daemon/" + Version)
+	if nodes.Node_Api_Uri != "" {
+		dockercloud.SetUserAgent("network-daemon/" + Version)
 	Loop:
 		for {
-			node, err := tutum.GetNode(nodes.Tutum_Node_Api_Uri)
+			node, err := dockercloud.GetNode(nodes.Node_Api_Uri)
 			if err != nil {
 				tries++
 				log.Println(err)
@@ -366,14 +366,14 @@ func main() {
 				}
 				continue Loop
 			} else {
-				nodes.Tutum_Region = node.Region
-				nodes.Tutum_Node_Public_Ip = node.Public_ip
-				nodes.Tutum_Node_Uuid = node.Uuid
+				nodes.Region = node.Region
+				nodes.Node_Public_Ip = node.Public_ip
+				nodes.Node_Uuid = node.Uuid
 
 				log.Println("===> Posting interface data to database")
-				nodes.PostInterfaceData(os.Getenv("TUTUM_REST_HOST") + nodes.Tutum_Node_Api_Uri)
+				nodes.PostInterfaceData(os.Getenv("TUTUM_REST_HOST") + nodes.Node_Api_Uri)
 
-				log.Printf("This node IP is %s", nodes.Tutum_Node_Public_Ip)
+				log.Printf("This node IP is %s", nodes.Node_Public_Ip)
 				if os.Getenv("TUTUM_AUTH") != "" {
 					log.Println("===> Detected Tutum API access - starting peer discovery goroutine")
 					go discovering(wg)
