@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	Node_Api_Uri    = os.Getenv("TUTUM_NODE_API_URI")
+	Node_Api_Uri    = os.Getenv("DOCKERCLOUD_NODE_API_URI")
 	Node_Public_Ip  = ""
 	Node_CIDR       = []dockercloud.Network{}
 	Node_Uuid       = ""
@@ -102,7 +102,7 @@ func sendData(url string, data []byte) error {
 		log.Println(err)
 		return err
 	}
-	tutumAuth := os.Getenv("TUTUM_AUTH")
+	tutumAuth := os.Getenv("DOCKERCLOUD_AUTH")
 	if tutumAuth != "" {
 		req.Header.Add("Authorization", tutumAuth)
 	}
@@ -250,8 +250,8 @@ func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 			Loop1:
 				for _, network := range Node_CIDR {
 					if networkAvailableCIDR.CIDR != network.CIDR && IsInPrivateRange(networkAvailableCIDR.CIDR) && IsInPrivateRange(network.CIDR) {
-						if os.Getenv("TUTUM_PRIVATE_CIDR") != "" {
-							if value.region == Region && CheckIfSameNetwork(os.Getenv("TUTUM_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
+						if os.Getenv("DOCKERCLOUD_PRIVATE_CIDR") != "" {
+							if value.region == Region && CheckIfSameNetwork(os.Getenv("DOCKERCLOUD_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
 								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
 								break Loop1
 							}

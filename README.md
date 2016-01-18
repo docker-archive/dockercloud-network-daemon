@@ -1,7 +1,7 @@
-tutum/weave-daemon
+tutum/network-daemon
 ==================
 
-System container used by [Tutum](http://www.tutum.co/) to provide a secure overlay network between nodes using [Weave](http://weave.works/net/). System containers are launched, configured and managed automatically on every node.
+System container used by [Dockercloud](https://cloud.docker.com/) to provide a secure overlay network between nodes using [Weave](http://weave.works/net/). System containers are launched, configured and managed automatically on every node.
 
 Performs two main tasks: attach containers to the weave network when they are started, and connect to newly discovered peers (via Tutum's API).
 
@@ -17,7 +17,7 @@ Performs two main tasks: attach containers to the weave network when they are st
       -e PROCFS=/hostproc \
       -e WEAVE_LAUNCH="" \
       -e WEAVE_PASSWORD="pass" \
-      tutum/weave-daemon
+      tutum/network-daemon
 
 
 ## Arguments

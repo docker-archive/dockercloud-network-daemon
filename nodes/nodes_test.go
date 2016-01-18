@@ -69,7 +69,7 @@ func Test_nodeAppendAWS(t *testing.T) {
 	Tutum_Region = "/1/2/3"
 	Tutum_Node_CIDR = []dockercloud.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
 
-	os.Setenv("TUTUM_PRIVATE_CIDR", "10.77.0.0/16")
+	os.Setenv("DOCKERCLOUD_PRIVATE_CIDR", "10.77.0.0/16")
 	nodeList := dockercloud.NodeListResponse{Objects: []dockercloud.Node{
 		{Uuid: "1", State: "Deployed", Region: "/1/2/3", Public_ip: "10.0.0.1", Private_ips: []dockercloud.Network{{Name: "eth0", CIDR: "10.77.250.17/17"}}},
 		{Uuid: "2", State: "Deployed", Region: "/1/2/2", Public_ip: "10.0.0.2", Private_ips: []dockercloud.Network{{Name: "eth0", CIDR: "10.77.32.16/17"}}}}}

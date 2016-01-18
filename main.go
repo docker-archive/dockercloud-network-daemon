@@ -70,8 +70,8 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	env_vars := inspect.Config.Env
 
 	for i := range env_vars {
-		if strings.HasPrefix(env_vars[i], "TUTUM_IP_ADDRESS=") {
-			cidr = env_vars[i][len("TUTUM_IP_ADDRESS="):]
+		if strings.HasPrefix(env_vars[i], "DOCKERCLOUD_IP_ADDRESS=") {
+			cidr = env_vars[i][len("DOCKERCLOUD_IP_ADDRESS="):]
 			break
 		}
 	}
@@ -371,10 +371,10 @@ func main() {
 				nodes.Node_Uuid = node.Uuid
 
 				log.Println("===> Posting interface data to database")
-				nodes.PostInterfaceData(os.Getenv("TUTUM_REST_HOST") + nodes.Node_Api_Uri)
+				nodes.PostInterfaceData(os.Getenv("DOCKERCLOUD_REST_HOST") + nodes.Node_Api_Uri)
 
 				log.Printf("This node IP is %s", nodes.Node_Public_Ip)
-				if os.Getenv("TUTUM_AUTH") != "" {
+				if os.Getenv("DOCKERCLOUD_AUTH") != "" {
 					log.Println("===> Detected Tutum API access - starting peer discovery goroutine")
 					go discovering(wg)
 					break Loop

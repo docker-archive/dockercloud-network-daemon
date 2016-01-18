@@ -24,10 +24,10 @@ IP2=10.7.0.2/16
 IP3=10.7.0.3/16
 
 echo "=> Launching hello world containers"
-docker run -d -e TUTUM_IP_ADDRESS=$IP1 tutum/hello-world
-docker run -d -e TUTUM_IP_ADDRESS=$IP2 tutum/hello-world
+docker run -d -e DOCKERCLOUD_IP_ADDRESS=$IP1 tutum/hello-world
+docker run -d -e DOCKERCLOUD_IP_ADDRESS=$IP2 tutum/hello-world
 
-echo "=> Launching weave-daemon"
+echo "=> Launching network-daemon"
 docker run -d \
       --net host \
       --privileged \
@@ -37,13 +37,13 @@ docker run -d \
       -e PROCFS=/hostproc \
       -e WEAVE_LAUNCH="" \
       -e WEAVE_PASSWORD="pass" \
-      --name weave-daemon \
-      tutum/weave-daemon:staging
+      --name network-daemon \
+      tutum/network-daemon:staging
 
 echo "=> Weave-daemon runtime"
 sleep 60
 
 echo "=> Pinging hello world containers"
-docker run -d --name=pingC -e TUTUM_IP_ADDRESS=$IP3 tutum/hello-world
+docker run -d --name=pingC -e DOCKERCLOUD_IP_ADDRESS=$IP3 tutum/hello-world
 docker exec -t pingC ping 10.7.0.2 -c 15
 docker exec -t pingC ping 10.7.0.1 -c 15
