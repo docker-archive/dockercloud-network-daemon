@@ -83,27 +83,3 @@ func Test_nodeAppendAWS(t *testing.T) {
 		t.Error("Unexpected node ips list")
 	}
 }
-
-func Test_compareNodePeer(t *testing.T) {
-	var diff1 []string
-	var diff2 []string
-
-	node_ips := []string{`10.0.0.1`, `10.0.0.2`, `10.0.0.3`, `10.0.0.4`}
-	node_ips2 := []string{`10.0.0.1`, `10.0.0.3`, `10.0.0.4`}
-	peer_ips := []string{`10.0.0.2`}
-
-	diff1 = compareNodePeer(node_ips, peer_ips, diff1)
-
-	expectedNodeList := []string{`10.0.0.1`, `10.0.0.3`, `10.0.0.4`}
-
-	if !testEq(diff1, expectedNodeList) {
-		t.Error("Unexpected node ips list")
-	}
-
-	diff2 = compareNodePeer(peer_ips, node_ips2, diff2)
-
-	expectedPeerList := []string{`10.0.0.2`}
-	if !testEq(diff2, expectedPeerList) {
-		t.Error("Unexpected peer ips list")
-	}
-}
