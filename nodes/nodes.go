@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/docker/go-dockercloud/dockercloud"
+	"github.com/tutumcloud/network-daemon/tools"
 )
 
 type NodeNetwork struct {
@@ -24,10 +25,6 @@ type NodeNetwork struct {
 type PostForm struct {
 	Interfaces []dockercloud.Network `json:"private_ips"`
 }
-
-const (
-	Version = "0.21.1"
-)
 
 var (
 	Node_Api_Uri    = os.Getenv("DOCKERCLOUD_NODE_API_URI")
@@ -106,7 +103,7 @@ func sendData(url string, data []byte) error {
 	if dcAuth != "" {
 		req.Header.Add("Authorization", dcAuth)
 	}
-	req.Header.Add("User-Agent", "network-daemon/"+Version)
+	req.Header.Add("User-Agent", "network-daemon/"+tools.Version)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -149,27 +146,11 @@ func PostInterfaceData(url string) {
 	data := PostForm{Interfaces: interfaces}
 	json, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("Cannot marshal the interface data: %v\n", data)
+		log.Println("Cannot marshal the interface data: %v\n", data)
 	}
 
 	log.Printf("Posting to %s with %s", url, string(json))
 	Send(url, json)
-}
-
-func compareNodePeer(array1, array2, diff []string) []string {
-	for _, s1 := range array1 {
-		found := false
-		for _, s2 := range array2 {
-			if s1 == s2 {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, s1)
-		}
-	}
-	return diff
 }
 
 func CIDRToIP(array []string) []string {
@@ -306,7 +287,7 @@ func DiscoverPeers() error {
 		var diff1 []string
 
 		//Checking if there are nodes that are not in the peer_ips list
-		diff1 = compareNodePeer(node_private_ips, peer_ips, diff1)
+		diff1 = tools.CompareArrays(node_private_ips, peer_ips, diff1)
 
 		for _, i := range diff1 {
 			err := connectToPeers(i)
@@ -322,7 +303,7 @@ func DiscoverPeers() error {
 
 		//Checking if there are nodes that are not in the peer_ips list
 
-		diff3 = compareNodePeer(node_public_ips, peer_ips_public, diff3)
+		diff3 = tools.CompareArrays(node_public_ips, peer_ips_public, diff3)
 
 		for _, i := range diff3 {
 			err := connectToPeers(i)
@@ -338,7 +319,7 @@ func DiscoverPeers() error {
 		var diff2 []string
 
 		//Checking if there are peers that are not in the node_private_ips list
-		diff2 = compareNodePeer(peer_ips, node_private_ips, diff2)
+		diff2 = tools.CompareArrays(peer_ips, node_private_ips, diff2)
 
 		for _, i := range diff2 {
 			err := forgetPeers(i)
@@ -353,7 +334,7 @@ func DiscoverPeers() error {
 		var diff4 []string
 
 		//Checking if there are peers that are not in the node_private_ips list
-		diff4 = compareNodePeer(peer_ips_public, node_public_ips, diff4)
+		diff4 = tools.CompareArrays(peer_ips_public, node_public_ips, diff4)
 
 		for _, i := range diff4 {
 			err := forgetPeers(i)

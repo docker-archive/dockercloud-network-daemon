@@ -189,12 +189,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	for _, container := range containers {
 		if !strings.HasPrefix(container.Image, "weaveworks/") {
 			log.Println("[CONTAINER ATTACH THREAD]: Found running container with ID: " + container.ID)
-
 			go AttachContainer(c, container.ID)
-			/*if err != nil {
-				log.Println("[CONTAINER ATTACH THREAD ERROR]: Attaching Containers failed")
-				return err
-			}*/
 		}
 
 		if strings.HasPrefix(container.Image, "weaveworks/weave:") {
@@ -219,10 +214,6 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 			if msg.Status == "start" && !strings.HasPrefix(msg.From, "weaveworks/") {
 				go AttachContainer(c, msg.ID)
-				/*if err != nil {
-					log.Println("[CONTAINER ATTACH THREAD ERROR]: " + err.Error())
-					break
-				}*/
 			}
 		case err := <-e:
 			return err
