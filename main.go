@@ -1,4 +1,4 @@
-package main // import "github.com/tutumcloud/dockercloud-network-daemon"
+package main // import "github.com/docker/dockercloud-network-daemon"
 
 import (
 	"bufio"
@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/dockercloud-network-daemon/nodes"
 	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/tutumcloud/dockercloud-network-daemon/nodes"
 )
 
 const (

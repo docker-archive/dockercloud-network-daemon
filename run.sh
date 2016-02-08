@@ -56,4 +56,4 @@ docker ps | grep -q "weave:${VERSION}"
 docker logs -f weave &
 
 echo "=> Starting peer discovery daemon"
-exec /network-daemon $@
+exec /dockercloud-network-daemon $@

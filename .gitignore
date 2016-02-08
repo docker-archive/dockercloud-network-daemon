@@ -38,4 +38,4 @@ nosetests.xml
 
 # binary
 weave
-network-daemon
+dockercloud-network-daemon

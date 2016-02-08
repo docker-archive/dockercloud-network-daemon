@@ -5,4 +5,4 @@ docker run --privileged \
   -v $(pwd):/src \
   -v /var/run/docker.sock:/var/run/docker.sock \
   centurylink/golang-builder \
-  network-daemon
+  dockercloud-network-daemon
