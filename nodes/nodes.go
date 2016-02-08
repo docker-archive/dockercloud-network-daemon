@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/docker/go-dockercloud/dockercloud"
-	"github.com/tutumcloud/network-daemon/tools"
 )
 
 type NodeNetwork struct {

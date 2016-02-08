@@ -6,16 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/dockercloud-network-daemon/containers"
 	"github.com/docker/dockercloud-network-daemon/nodes"
+	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/fsouza/go-dockerclient"
-<<<<<<< HEAD
-=======
-	"github.com/tutumcloud/go-dockercloud/dockercloud"
-	"github.com/tutumcloud/network-daemon/containers"
-	"github.com/tutumcloud/network-daemon/nodes"
-	"github.com/tutumcloud/network-daemon/tools"
->>>>>>> 8f37460... use new packages
 )
 
 func nodeEventHandler(eventType string, state string, action string) error {

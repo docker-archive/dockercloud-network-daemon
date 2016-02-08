@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/tutumcloud/network-daemon/tools"
 )
 
 type Event struct {
