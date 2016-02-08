@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tutumcloud/go-dockercloud/dockercloud"
+	"github.com/docker/go-dockercloud/dockercloud"
 )
 
 type NodeNetwork struct {
@@ -102,9 +102,9 @@ func sendData(url string, data []byte) error {
 		log.Println(err)
 		return err
 	}
-	tutumAuth := os.Getenv("DOCKERCLOUD_AUTH")
-	if tutumAuth != "" {
-		req.Header.Add("Authorization", tutumAuth)
+	dcAuth := os.Getenv("DOCKERCLOUD_AUTH")
+	if dcAuth != "" {
+		req.Header.Add("Authorization", dcAuth)
 	}
 	req.Header.Add("User-Agent", "network-daemon/"+Version)
 

@@ -1,4 +1,4 @@
-package main // import "github.com/tutumcloud/network-daemon"
+package main // import "github.com/tutumcloud/dockercloud-network-daemon"
 
 import (
 	"bufio"
@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/go-dockercloud/dockercloud"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/tutumcloud/go-dockercloud/dockercloud"
-	"github.com/tutumcloud/network-daemon/nodes"
+	"github.com/tutumcloud/dockercloud-network-daemon/nodes"
 )
 
 const (
@@ -375,7 +375,7 @@ func main() {
 
 				log.Printf("This node IP is %s", nodes.Node_Public_Ip)
 				if os.Getenv("DOCKERCLOUD_AUTH") != "" {
-					log.Println("===> Detected Tutum API access - starting peer discovery goroutine")
+					log.Println("===> Detected Dockecloud API access - starting peer discovery goroutine")
 					go discovering(wg)
 					break Loop
 				}

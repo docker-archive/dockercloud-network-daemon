@@ -54,7 +54,7 @@ func Test_nodeEventHandler(t *testing.T) {
 	state3 := "Terminated"
 	action1 := "create"
 	action2 := "update"
-	Msg := "Couldn't find any Tutum credentials in ~/.tutum or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY"
+	Msg := "Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY"
 
 	err := nodeEventHandler(eventType1, state1, action2)
 	err2 := nodeEventHandler(eventType2, state1, action2)

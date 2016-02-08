@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tutumcloud/go-dockercloud/dockercloud"
+	"github.com/docker/go-dockercloud/dockercloud"
 )
 
 func testEq(a, b []string) bool {
@@ -65,9 +65,9 @@ func Test_IsInPrivateRange(t *testing.T) {
 }
 
 func Test_nodeAppendAWS(t *testing.T) {
-	Tutum_Node_Public_Ip = "178.100.50.34"
-	Tutum_Region = "/1/2/3"
-	Tutum_Node_CIDR = []dockercloud.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
+	Node_Public_Ip = "178.100.50.34"
+	Region = "/1/2/3"
+	Node_CIDR = []dockercloud.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
 
 	os.Setenv("DOCKERCLOUD_PRIVATE_CIDR", "10.77.0.0/16")
 	nodeList := dockercloud.NodeListResponse{Objects: []dockercloud.Node{
