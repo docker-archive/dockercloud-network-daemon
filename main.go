@@ -105,21 +105,21 @@ func main() {
 	log.Println("===> Starting container discovery goroutine")
 	go containerThread(client, wg)
 
-	tries := 0
+	counter := 0
 	if nodes.Node_Api_Uri != "" {
 		dockercloud.SetUserAgent("network-daemon/" + tools.Version)
 	Loop:
 		for {
 			node, err := dockercloud.GetNode(nodes.Node_Api_Uri)
 			if err != nil {
-				tries++
-				log.Println(err)
-				time.Sleep(5 * time.Second)
-				if tries > 3 {
-					time.Sleep(60 * time.Second)
-					tries = 0
+				if counter > 100 {
+					time.Sleep(time.Duration(counter) * time.Second)
+					counter = 0
+				} else {
+					counter *= 2
+					log.Println(err)
+					time.Sleep(5 * time.Second)
 				}
-				continue Loop
 			} else {
 				nodes.Region = node.Region
 				nodes.Node_Public_Ip = node.Public_ip
