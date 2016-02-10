@@ -7,31 +7,6 @@ const (
 	DockerPath = "/usr/local/bin/docker"
 )
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-func InHashWithValue(containerAttached map[string]string, id string, value string) bool {
-	if val, ok := containerAttached[id]; ok && val == value {
-		return true
-	}
-	return false
-}
-
-func RemoveMissing(containerAttached map[string]string, containerList []string) map[string]string {
-	for k, _ := range containerAttached {
-		if !stringInSlice(k, containerList) {
-			delete(containerAttached, k)
-		}
-	}
-	return containerAttached
-}
-
 func CompareArrays(array1, array2, diff []string) []string {
 	for _, s1 := range array1 {
 		found := false

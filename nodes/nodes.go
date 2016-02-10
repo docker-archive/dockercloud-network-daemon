@@ -270,7 +270,7 @@ func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 
 func DiscoverPeers() error {
 	tries := 0
-	counter := 0
+	counter := 1
 	log.Println("[NODE DISCOVERY STARTED]")
 	for {
 		nodeList, err := dockercloud.ListNodes()
@@ -280,9 +280,8 @@ func DiscoverPeers() error {
 				return err
 			} else {
 				counter *= 2
-				log.Println("%s: Retry in %d seconds", err, counter)
+				log.Printf("%s: Retry in %d seconds", err, counter)
 				time.Sleep(time.Duration(counter) * time.Second)
-
 			}
 		}
 
