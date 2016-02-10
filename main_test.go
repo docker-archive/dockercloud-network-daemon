@@ -2,50 +2,6 @@ package main
 
 import "testing"
 
-func Test_stringInSlice(t *testing.T) {
-	list := []string{`a`, `b`, `c`}
-	astring := `a`
-	anotherstring := `d`
-
-	success := stringInSlice(astring, list)
-	if success != true {
-		t.Error("Expected true, got ", success)
-	}
-
-	failure := stringInSlice(anotherstring, list)
-	if failure != false {
-		t.Error("Expected false, got ", failure)
-	}
-}
-
-func Test_removeMissing(t *testing.T) {
-	containerAttached := make(map[string]string)
-	containerAttached[`Hello`] = `world`
-	containerAttached[`Test`] = `true`
-
-	containerList := []string{`Hello`, `GoodBye`}
-
-	containerAttached = removeMissing(containerAttached, containerList)
-
-	if val, ok := containerAttached[`Test`]; ok {
-		t.Error("Expected no value got " + val)
-	}
-}
-
-func Test_inHashWithValue(t *testing.T) {
-	containerAttached := make(map[string]string)
-	containerAttached[`Hello`] = `world`
-	containerAttached[`Test`] = `true`
-
-	if !inHashWithValue(containerAttached, `Hello`, `world`) {
-		t.Error("Expected true, got false")
-	}
-
-	if inHashWithValue(containerAttached, `Test`, `false`) {
-		t.Error("Expected false, got true")
-	}
-}
-
 func Test_nodeEventHandler(t *testing.T) {
 	eventType1 := "node"
 	eventType2 := "service"
