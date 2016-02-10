@@ -166,7 +166,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	containerAttached := make(map[string]string)
 	containerList := []string{}
 
-	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
+	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: false, Limit: 0, Since: "", Before: ""})
 	if err != nil {
 		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
 		return err
@@ -239,7 +239,7 @@ func ContainerAttachThread(c *docker.Client) error {
 				os.Exit(1)
 			}
 
-			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
+			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: false, Limit: 0, Since: "", Before: ""})
 			if err != nil {
 				log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
 				return err
