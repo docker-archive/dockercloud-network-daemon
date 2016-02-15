@@ -279,83 +279,83 @@ func DiscoverPeers() error {
 				log.Printf("%s: Retry in %d seconds", err, counter)
 				time.Sleep(time.Duration(counter) * time.Second)
 			}
-		}
+		} else {
+			if len(nodeList.Objects) == 0 {
+				return nil
+			}
 
-		if len(nodeList.Objects) == 0 {
-			return nil
-		}
+			node_public_ips, node_private_ips := NodeAppend(nodeList)
 
-		node_public_ips, node_private_ips := NodeAppend(nodeList)
+			log.Println("[NODE DISCOVERY]: Current nodes available")
+			log.Printf("Private Network: %s", node_private_ips)
+			log.Printf("Public Network: %s", node_public_ips)
 
-		log.Println("[NODE DISCOVERY]: Current nodes available")
-		log.Printf("Private Network: %s", node_private_ips)
-		log.Printf("Public Network: %s", node_public_ips)
+			var diff1 []string
 
-		var diff1 []string
+			//Checking if there are nodes that are not in the peer_ips list
+			diff1 = tools.CompareArrays(node_private_ips, peer_ips, diff1)
 
-		//Checking if there are nodes that are not in the peer_ips list
-		diff1 = tools.CompareArrays(node_private_ips, peer_ips, diff1)
-
-		for _, i := range diff1 {
-			err := connectToPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff1 {
+				err := connectToPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		var diff3 []string
+			var diff3 []string
 
-		//Checking if there are nodes that are not in the peer_ips list
+			//Checking if there are nodes that are not in the peer_ips list
 
-		diff3 = tools.CompareArrays(node_public_ips, peer_ips_public, diff3)
+			diff3 = tools.CompareArrays(node_public_ips, peer_ips_public, diff3)
 
-		for _, i := range diff3 {
-			err := connectToPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff3 {
+				err := connectToPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		//IF TERMINATED EVENT
-		var diff2 []string
+			//IF TERMINATED EVENT
+			var diff2 []string
 
-		//Checking if there are peers that are not in the node_private_ips list
-		diff2 = tools.CompareArrays(peer_ips, node_private_ips, diff2)
+			//Checking if there are peers that are not in the node_private_ips list
+			diff2 = tools.CompareArrays(peer_ips, node_private_ips, diff2)
 
-		for _, i := range diff2 {
-			err := forgetPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff2 {
+				err := forgetPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		var diff4 []string
+			var diff4 []string
 
-		//Checking if there are peers that are not in the node_private_ips list
-		diff4 = tools.CompareArrays(peer_ips_public, node_public_ips, diff4)
+			//Checking if there are peers that are not in the node_private_ips list
+			diff4 = tools.CompareArrays(peer_ips_public, node_public_ips, diff4)
 
-		for _, i := range diff4 {
-			err := forgetPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff4 {
+				err := forgetPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		peer_ips = node_private_ips
-		peer_ips_public = node_public_ips
-		break
+			peer_ips = node_private_ips
+			peer_ips_public = node_public_ips
+			break
+		}
 	}
 
 	log.Println("[NODE DISCOVERY STOPPED]")

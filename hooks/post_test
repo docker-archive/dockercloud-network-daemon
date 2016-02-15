@@ -38,7 +38,7 @@ docker run -d \
       -e WEAVE_LAUNCH="" \
       -e WEAVE_PASSWORD="pass" \
       --name network-daemon \
-      tutum/network-daemon:staging
+      dockercloud/network-daemon:staging
 
 echo "=> Weave-daemon runtime"
 sleep 60
