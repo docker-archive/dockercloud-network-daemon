@@ -52,3 +52,14 @@ func Test_compareArrays(t *testing.T) {
 		t.Error("Unexpected peer ips list")
 	}
 }
+
+func Test_removeDuplicates(t *testing.T) {
+	a := []string{"192.168.130.23", "192.168.130.24", "192.168.130.23", "192.168.130.24", "192.168.130.22"}
+	a_without_duplicates := []string{"192.168.130.23", "192.168.130.24", "192.168.130.22"}
+
+	a = RemoveDuplicates(a)
+
+	if !testEq(a, a_without_duplicates) {
+		t.Error("Unexpected node ips list")
+	}
+}
