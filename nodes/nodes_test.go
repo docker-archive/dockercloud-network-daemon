@@ -31,17 +31,6 @@ func Test_CIDRToIP(t *testing.T) {
 	}
 }
 
-func Test_removeDuplicates(t *testing.T) {
-	a := []string{"192.168.130.23", "192.168.130.24", "192.168.130.23", "192.168.130.24", "192.168.130.22"}
-	a_without_duplicates := []string{"192.168.130.23", "192.168.130.24", "192.168.130.22"}
-
-	a = removeDuplicates(a)
-
-	if !testEq(a, a_without_duplicates) {
-		t.Error("Unexpected node ips list")
-	}
-}
-
 func Test_IsInPrivateRange(t *testing.T) {
 	IP1 := "159.8.238.60/16"
 	response1 := IsInPrivateRange(IP1)

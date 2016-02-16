@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/docker/dockercloud-network-daemon/tools"
@@ -35,62 +34,6 @@ var (
 	peer_ips        = []string{}
 	peer_ips_public = []string{}
 )
-
-func removeDuplicates(elements []string) []string {
-	encountered := map[string]bool{}
-	result := []string{}
-
-	for v := range elements {
-		if encountered[elements[v]] == true {
-			// Do not add duplicate.
-		} else {
-			encountered[elements[v]] = true
-			result = append(result, elements[v])
-		}
-	}
-	return result
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func getInterfaces() []dockercloud.Network {
-	rawInterfaces, err := net.Interfaces()
-	if err != nil {
-		log.Fatalf("Cannot get network interfaces: %s", err.Error())
-	}
-
-	ifs := make([]dockercloud.Network, 0, 0)
-	for _, iface := range rawInterfaces {
-		name := strings.ToLower(iface.Name)
-		addrs, err := iface.Addrs()
-		if err != nil {
-			log.Printf("Cannot get address from interface %s: %s", iface.Name, err.Error())
-			continue
-		}
-		log.Printf("Found interface %s: %s", name, addrs)
-
-		var cidr string
-
-		if !contains([]string{"docker0", "weave", "lo"}, name) {
-			for _, addr := range addrs {
-				cidr = addr.String()
-				if strings.ContainsAny(cidr, "abcdef:") {
-					continue
-				}
-
-				ifs = append(ifs, dockercloud.Network{Name: name, CIDR: cidr})
-			}
-		}
-	}
-	return ifs
-}
 
 func sendData(url string, data []byte) error {
 	httpClient := &http.Client{}
@@ -140,7 +83,7 @@ func Send(url string, data []byte) {
 }
 
 func PostInterfaceData(url string) {
-	interfaces := getInterfaces()
+	interfaces := tools.GetInterfaces()
 	Node_CIDR = interfaces
 
 	data := PostForm{Interfaces: interfaces}
@@ -261,7 +204,7 @@ func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 	}
 
 	node_private_ips = CIDRToIP(node_private_ips)
-	return removeDuplicates(node_public_ips), removeDuplicates(node_private_ips)
+	return tools.RemoveDuplicates(node_public_ips), tools.RemoveDuplicates(node_private_ips)
 }
 
 func DiscoverPeers() error {
