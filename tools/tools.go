@@ -9,10 +9,14 @@ import (
 )
 
 const (
-	Version    = "0.21.1"
+	//Version version of the network daemon
+	Version = "0.21.1"
+
+	//DockerPath path of the docker binary
 	DockerPath = "/usr/local/bin/docker"
 )
 
+//CompareArrays returns the elements that are in array1 and not in array2
 func CompareArrays(array1, array2, diff []string) []string {
 	for _, s1 := range array1 {
 		found := false
@@ -29,7 +33,8 @@ func CompareArrays(array1, array2, diff []string) []string {
 	return diff
 }
 
-func CompareIdArrays(array1, array2, diff []string) []string {
+//CompareIDArrays returns the elements that are in array1 and not in array2
+func CompareIDArrays(array1, array2, diff []string) []string {
 	for _, s1 := range array1 {
 		found := false
 		for _, s2 := range array2 {
@@ -45,6 +50,7 @@ func CompareIdArrays(array1, array2, diff []string) []string {
 	return diff
 }
 
+//RemoveDuplicates removes potential duplicated elements in the elements array
 func RemoveDuplicates(elements []string) []string {
 	encountered := map[string]bool{}
 	result := []string{}
@@ -69,6 +75,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
+//GetInterfaces lists the interfaces of the current node
 func GetInterfaces() []dockercloud.Network {
 	rawInterfaces, err := net.Interfaces()
 	if err != nil {
