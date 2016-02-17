@@ -13,6 +13,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+//Event struct for docker events
 type Event struct {
 	Node       string `json:"node,omitempty"`
 	Status     string `json:"status"`
@@ -23,23 +24,24 @@ type Event struct {
 	ExitCode   string `json:"exitcode"`
 }
 
-func AttachContainer(c *docker.Client, container_id string) {
-	log.Println("[CONTAINER ATTACH]: Inspecting Containers " + container_id)
-	inspect, err := c.InspectContainer(container_id)
+//AttachContainer inspects the container with the id containerID and weave attach it
+func AttachContainer(c *docker.Client, containerID string) {
+	log.Println("[CONTAINER ATTACH]: Inspecting Containers " + containerID)
+	inspect, err := c.InspectContainer(containerID)
 
 	if err != nil {
 		log.Println("[CONTAINER ATTACH]: Inspecting Containers failed")
 		return
 	}
 
-	log.Println("[CONTAINER ATTACH]: Attaching container " + container_id)
+	log.Println("[CONTAINER ATTACH]: Attaching container " + containerID)
 
 	cidr := ""
-	env_vars := inspect.Config.Env
+	envVars := inspect.Config.Env
 
-	for i := range env_vars {
-		if strings.HasPrefix(env_vars[i], "DOCKERCLOUD_IP_ADDRESS=") {
-			cidr = env_vars[i][len("DOCKERCLOUD_IP_ADDRESS="):]
+	for i := range envVars {
+		if strings.HasPrefix(envVars[i], "DOCKERCLOUD_IP_ADDRESS=") {
+			cidr = envVars[i][len("DOCKERCLOUD_IP_ADDRESS="):]
 			break
 		}
 	}
@@ -48,7 +50,7 @@ func AttachContainer(c *docker.Client, container_id string) {
 		tries := 0
 	Loop:
 		for {
-			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
+			cmd := exec.Command("/weave", "--local", "attach", cidr, containerID)
 
 			if _, err := cmd.StdoutPipe(); err != nil {
 				break Loop
@@ -75,12 +77,12 @@ func AttachContainer(c *docker.Client, container_id string) {
 					break Loop
 				}
 			} else {
-				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s with IP %s", container_id, cidr)
+				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s with IP %s", containerID, cidr)
 				break
 			}
 		}
 	} else {
-		log.Printf("[CONTAINER ATTACH]: Ignoring container %s - cannot find the IP address to add to weave", container_id)
+		log.Printf("[CONTAINER ATTACH]: Ignoring container %s - cannot find the IP address to add to weave", containerID)
 	}
 }
 
@@ -127,6 +129,7 @@ func monitorDockerEvents(c chan Event, e chan error) {
 	log.Println("docker events stops")
 }
 
+//ContainerAttachThread List containers on the current node and execute AttachContainer function at launch and whenever we receive a start event from docker
 func ContainerAttachThread(c *docker.Client) error {
 	var weaveID = ""
 	listener := make(chan Event)
@@ -206,7 +209,7 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			var containerToConnectList []string
-			containerToConnectList = tools.CompareIdArrays(containerList, connectedContainerList, containerToConnectList)
+			containerToConnectList = tools.CompareIDArrays(containerList, connectedContainerList, containerToConnectList)
 			if len(containerToConnectList) > 0 {
 				for _, id := range containerToConnectList {
 					go AttachContainer(c, id)
