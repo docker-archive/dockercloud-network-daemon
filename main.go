@@ -81,32 +81,15 @@ func AttachContainer(c *docker.Client, container_id string) error {
 		for {
 			cmd := exec.Command("/weave", "--local", "attach", cidr, container_id)
 
-			if _, err := cmd.StdoutPipe(); err != nil {
-				return err
-			}
-
-			if _, err := cmd.StderrPipe(); err != nil {
-				return err
-			}
-
-			if err := cmd.Start(); err != nil {
+			if output, err := cmd.CombinedOutput(); err != nil {
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed:", err)
-				if tries > 3 {
-					return err
-				}
-			}
-
-			if err := cmd.Wait(); err != nil {
-				tries++
-				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed:", err)
+				log.Println("[CONTAINER ATTACH ERROR]: Weave attach failed:", err, string(output))
 				if tries > 3 {
 					return err
 				}
 			} else {
-				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s with IP %s", container_id, cidr)
+				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s: %s", container_id, string(output))
 				break
 			}
 		}
