@@ -1,4 +1,4 @@
-package main // import "github.com/docker/dockercloud-network-daemon"
+package main //import "github.com/docker/dockercloud-network-daemon"
 
 import (
 	"log"
@@ -91,11 +91,11 @@ func main() {
 	go containerThread(client, wg)
 
 	counter := 0
-	if nodes.Node_Api_Uri != "" {
+	if nodes.NodeAPIURI != "" {
 		dockercloud.SetUserAgent("network-daemon/" + tools.Version)
 	Loop:
 		for {
-			node, err := dockercloud.GetNode(nodes.Node_Api_Uri)
+			node, err := dockercloud.GetNode(nodes.NodeAPIURI)
 			if err != nil {
 				if counter > 100 {
 					time.Sleep(time.Duration(counter) * time.Second)
@@ -107,13 +107,13 @@ func main() {
 				}
 			} else {
 				nodes.Region = node.Region
-				nodes.Node_Public_Ip = node.Public_ip
-				nodes.Node_Uuid = node.Uuid
+				nodes.NodePublicIP = node.Public_ip
+				nodes.NodeUUID = node.Uuid
 
 				log.Println("===> Posting interface data to database")
-				nodes.PostInterfaceData(os.Getenv("DOCKERCLOUD_REST_HOST") + nodes.Node_Api_Uri)
+				nodes.PostInterfaceData(os.Getenv("DOCKERCLOUD_REST_HOST") + nodes.NodeAPIURI)
 
-				log.Printf("This node IP is %s", nodes.Node_Public_Ip)
+				log.Printf("This node IP is %s", nodes.NodePublicIP)
 				if os.Getenv("DOCKERCLOUD_AUTH") != "" {
 					log.Println("===> Detected Dockecloud API access - starting peer discovery goroutine")
 					go discovering(wg)
