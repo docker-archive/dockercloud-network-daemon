@@ -13,6 +13,7 @@ import (
 
 	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/docker/go-dockercloud/dockercloud"
+	"github.com/getsentry/raven-go"
 )
 
 //NodeNetwork type
@@ -33,7 +34,7 @@ const (
 
 var (
 	//NodeAPIURI resource uri of the current node
-	NodeAPIURI = os.Getenv("DOCKERCLOUD_NodeAPIURI")
+	NodeAPIURI = os.Getenv("DOCKERCLOUD_NODE_API_URI")
 	//NodePublicIP public IP of the current node
 	NodePublicIP = ""
 	//NodeCIDR private IPs of the current node
@@ -166,7 +167,6 @@ func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 	if ipNet1.Contains(ip2) || ipNet2.Contains(ip1) {
 		return true
 	}
-
 	return false
 }
 
@@ -330,39 +330,14 @@ Loop:
 
 		log.Printf("[NODE DISCOVERY]: Connecting to newly discovered peer: %s", nodeIP)
 		cmd := exec.Command("/weave", "--local", "connect", nodeIP)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
+		if output, err := cmd.CombinedOutput(); err != nil {
+			packet := raven.Packet{Message: "Node Connect failed", Extra: map[string]interface{}{"output": string(output)}, Release: tools.Version}
+			raven.Capture(&packet, map[string]string{"type": "nodeConnect", "nodeURI": NodeAPIURI})
 			tries++
 			time.Sleep(2 * time.Second)
+			log.Println("[NODE DISCOVERY ERROR]: Unable to 'weave connect':", err, string(output))
 			if tries > 3 {
-				return err
-			}
-		}
-
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Start(); err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Wait(); err != nil {
-			log.Printf("%s: %s %s", nodeIP, stdout, stderr)
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave connect: %s %s", stdout, stderr)
-				return err
+				break Loop
 			}
 		} else {
 			break Loop
@@ -379,39 +354,14 @@ Loop:
 	for {
 		log.Printf("[NODE DISCOVERY]: Forgetting peer: %s", nodeIP)
 		cmd := exec.Command("/weave", "--local", "forget", nodeIP)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
+		if output, err := cmd.CombinedOutput(); err != nil {
+			packet := raven.Packet{Message: "Node Forget failed", Extra: map[string]interface{}{"output": string(output)}, Release: tools.Version}
+			raven.Capture(&packet, map[string]string{"type": "nodeForget", "nodeURI": NodeAPIURI})
 			tries++
 			time.Sleep(2 * time.Second)
+			log.Println("[NODE DISCOVERY ERROR]: Unable to 'weave forget':", err, string(output))
 			if tries > 3 {
-				return err
-			}
-		}
-
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Start(); err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Wait(); err != nil {
-			log.Printf("CMD ERRO : %s: %s %s", nodeIP, stdout, stderr)
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave forget: %s %s", stdout, stderr)
-				return err
+				break Loop
 			}
 		} else {
 			break Loop
