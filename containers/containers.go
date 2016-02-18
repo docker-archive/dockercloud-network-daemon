@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/fsouza/go-dockerclient"
+	"github.com/getsentry/raven-go"
 )
 
 //Event struct for docker events
@@ -51,33 +52,17 @@ func AttachContainer(c *docker.Client, containerID string) {
 	Loop:
 		for {
 			cmd := exec.Command("/weave", "--local", "attach", cidr, containerID)
-
-			if _, err := cmd.StdoutPipe(); err != nil {
-				break Loop
-			}
-
-			if _, err := cmd.StderrPipe(); err != nil {
-				break Loop
-			}
-
-			if err := cmd.Start(); err != nil {
+			if output, err := cmd.CombinedOutput(); err != nil {
+				packet := raven.Packet{Message: "Container Attach failed", Extra: map[string]interface{}{"output": string(output), "id": containerID}, Release: tools.Version}
+				raven.Capture(&packet, map[string]string{"type": "containerAttach"})
 				tries++
 				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Start weave cmd failed:", err)
-				if tries > 3 {
-					break Loop
-				}
-			}
-
-			if err := cmd.Wait(); err != nil {
-				tries++
-				time.Sleep(2 * time.Second)
-				log.Println("[CONTAINER ATTACH ERROR]: Wait weave cmd failed:", err)
+				log.Println("[CONTAINER ATTACH ERROR]: Weave attach failed:", err, string(output))
 				if tries > 3 {
 					break Loop
 				}
 			} else {
-				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s with IP %s", containerID, cidr)
+				log.Printf("[CONTAINER ATTACH]: Weave attach successful for %s: %s", containerID, string(output))
 				break
 			}
 		}
@@ -182,7 +167,7 @@ func ContainerAttachThread(c *docker.Client) error {
 	containerList := []string{}
 	connectedContainerList := []string{}
 
-	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
+	containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: false, Limit: 0, Since: "", Before: ""})
 	if err != nil {
 		log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
 		return err
@@ -230,7 +215,7 @@ func ContainerAttachThread(c *docker.Client) error {
 				os.Exit(1)
 			}
 
-			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: true, Limit: 0, Since: "", Before: ""})
+			containers, err := c.ListContainers(docker.ListContainersOptions{All: false, Size: false, Limit: 0, Since: "", Before: ""})
 			if err != nil {
 				log.Println("[CONTAINER ATTACH THREAD ERROR]: Listing Containers failed")
 				return err
@@ -250,13 +235,27 @@ func ContainerAttachThread(c *docker.Client) error {
 			}
 
 			for _, container := range containers {
-				containerList = append(containerList, container.ID)
+				inspect, err := c.InspectContainer(container.ID)
+
+				if err != nil {
+					log.Println("[CONTAINER ATTACH THREAD ERROR]: Inspecting Containers failed")
+				}
+
+				envVars := inspect.Config.Env
+
+				for i := range envVars {
+					if strings.HasPrefix(envVars[i], "DOCKERCLOUD_IP_ADDRESS=") {
+						containerList = append(containerList, container.ID)
+					}
+				}
 			}
 
 			var containerToConnectList []string
 			containerToConnectList = tools.CompareIDArrays(containerList, connectedContainerList, containerToConnectList)
 			if len(containerToConnectList) > 0 {
 				for _, id := range containerToConnectList {
+					packet := raven.Packet{Message: "Container not attached", Extra: map[string]interface{}{"AttachedContainers": output, "id": id}, Release: tools.Version}
+					raven.Capture(&packet, map[string]string{"type": "containerAttach"})
 					go AttachContainer(c, id)
 				}
 			}
