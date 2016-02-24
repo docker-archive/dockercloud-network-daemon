@@ -99,7 +99,7 @@ func AttachContainer(c *docker.Client, container_id string) error {
 	return nil
 }
 
-func monitorDockerEvents(c chan Event, e chan error) {
+func monitorDockerEvents(c chan *Event, e chan error) {
 	log.Println("docker events starts")
 	cmd := exec.Command(DockerPath, "events")
 	cmdReader, err := cmd.StdoutPipe()
@@ -111,16 +111,9 @@ func monitorDockerEvents(c chan Event, e chan error) {
 	go func() {
 		for scanner.Scan() {
 			eventStr := scanner.Text()
-			if eventStr != "" {
-				re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
-				terms := re.FindStringSubmatch(eventStr)
-				if len(terms) == 5 {
-					var event Event
-					event.ID = terms[2]
-					event.From = terms[3]
-					event.Status = terms[4]
-					c <- event
-				}
+			event := parseEvent(eventStr)
+			if event != nil {
+				c <- event
 			}
 		}
 		if scanner.Err() == nil {
@@ -142,9 +135,61 @@ func monitorDockerEvents(c chan Event, e chan error) {
 	log.Println("docker events stops")
 }
 
+func parseEvent(eventStr string) (event *Event) {
+	if eventStr == "" {
+		return nil
+	}
+
+	re := regexp.MustCompile("(.*) (.{64}): \\(from (.*)\\) (.*)")
+	terms := re.FindStringSubmatch(eventStr)
+	if len(terms) == 5 {
+		var event Event
+		eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+		if err == nil {
+			event.Time = eventTime.UnixNano()
+		} else {
+			event.Time = time.Now().UnixNano()
+		}
+		event.ID = terms[2]
+		event.From = terms[3]
+		event.Status = terms[4]
+		event.HandleTime = time.Now().UnixNano()
+		return &event
+	}
+
+	// for docker event 1.10 or above
+	re = regexp.MustCompile("(.*) container (\\w*) (.{64}) \\((.*)\\)")
+	terms = re.FindStringSubmatch(eventStr)
+	if len(terms) == 5 {
+		var event Event
+		eventTime, err := time.Parse(time.RFC3339Nano, terms[1])
+		if err == nil {
+			event.Time = eventTime.UnixNano()
+		} else {
+			event.Time = time.Now().UnixNano()
+		}
+		event.ID = terms[3]
+		event.Status = terms[2]
+		event.HandleTime = time.Now().UnixNano()
+
+		if terms[4] != "" {
+			attrs := strings.Split(terms[4], ",")
+			for _, attr := range attrs {
+				attr = strings.TrimSpace(attr)
+				if strings.HasPrefix(strings.ToLower(attr), "image=") && len(attr) > 6 {
+					event.From = attr[6:]
+				}
+			}
+		}
+		return &event
+	}
+
+	return nil
+}
+
 func ContainerAttachThread(c *docker.Client) error {
 	var weaveID = ""
-	listener := make(chan Event)
+	listener := make(chan *Event)
 	e := make(chan error)
 	containerAttached := make(map[string]string)
 	containerList := []string{}
