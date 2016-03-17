@@ -6,11 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/dockercloud-network-daemon/containers"
 	"github.com/docker/dockercloud-network-daemon/nodes"
 	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/docker/go-dockercloud/dockercloud"
-	"github.com/fsouza/go-dockerclient"
 )
 
 const (
@@ -69,41 +67,10 @@ func discovering(wg *sync.WaitGroup) {
 	tutumEventHandler(wg, c, e)
 }
 
-func containerThread(client *docker.Client, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		err := containers.ContainerAttachThread(client)
-		if err != nil {
-			log.Println(err)
-			time.Sleep(15 * time.Second)
-		}
-	}
-}
-
-func connectToDocker() (*docker.Client, error) {
-	endpoint := "unix:///var/run/docker.sock"
-
-	client, err := docker.NewClient(endpoint)
-
-	if err != nil {
-
-		log.Println(err)
-	}
-	return client, nil
-}
-
 func main() {
 	log.Println("===> Start running daemon")
 	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	//Init Docker client
-	client, err := connectToDocker()
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	log.Println("===> Starting container discovery goroutine")
-	go containerThread(client, wg)
+	wg.Add(1)
 
 	counter := 0
 	if nodes.NodeAPIURI != "" {

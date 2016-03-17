@@ -12,15 +12,18 @@ Performs two main tasks: attach containers to the weave network when they are st
       --net host \
       --privileged \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      -v /usr/bin/docker:/usr/local/bin/docker:r \
+      -v /usr/bin/docker:/usr/local/bin/docker \
       -v /proc:/hostproc \
       -e PROCFS=/hostproc \
       -e WEAVE_LAUNCH="" \
       -e WEAVE_PASSWORD="pass" \
       dockercloud/network-daemon
 
+## Launch containers
 
-## Arguments
+    docker run -d --net dockercloud --ip 10.7.x.x dockercloud/hello-world
+
+## Arguments
 
 Key | Description
 ----|------------

@@ -232,6 +232,9 @@ func DiscoverPeers() error {
 	for {
 		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
+			if err.Error() == "Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY" {
+				return err
+			}
 			if counter > 100 {
 				log.Println("Too many retries, give up")
 				return err
