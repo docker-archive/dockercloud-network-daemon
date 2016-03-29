@@ -26,9 +26,12 @@ type Event struct {
 	ExitCode   string `json:"exitcode"`
 }
 
-func nodeEventHandler(eventType string, state string, action string) error {
+//DiscoverPeer type to mock during tests
+type DiscoverPeer func() error
+
+func nodeEventHandler(eventType string, state string, action string, discoverFunc DiscoverPeer) error {
 	if (eventType == "node" && state == "Deployed" && action == "update") || (eventType == "node" && state == "Terminated") {
-		err := nodes.DiscoverPeers()
+		err := discoverFunc()
 		if err != nil {
 			return err
 		}
@@ -41,7 +44,7 @@ Loop:
 	for {
 		select {
 		case event := <-c:
-			err := nodeEventHandler(event.Type, event.State, event.Action)
+			err := nodeEventHandler(event.Type, event.State, event.Action, nodes.DiscoverPeers)
 			if err != nil {
 				log.Println(err)
 			}
