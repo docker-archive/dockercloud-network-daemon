@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	Version    = "0.21.1"
+	Version    = "1.0.2"
 	DockerPath = "/usr/local/bin/docker"
 )
 
