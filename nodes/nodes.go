@@ -289,6 +289,10 @@ func DiscoverPeers() error {
 	for {
 		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
+			if err.Error() == "Failed API call: 401 Unauthorized" {
+				log.Println("Not authorized. Retry in 1 hour")
+				time.Sleep(1 * time.Hour)
+			}
 			time.Sleep(60 * time.Second)
 			return err
 		}
