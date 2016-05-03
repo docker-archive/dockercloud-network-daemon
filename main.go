@@ -11,11 +11,7 @@ import (
 	"github.com/docker/go-dockercloud/dockercloud"
 )
 
-const (
-	Version    = "1.0.3"
-	DockerPath = "/usr/local/bin/docker"
-)
-
+//Event type from dockercloud API
 type Event struct {
 	Node       string `json:"node,omitempty"`
 	Status     string `json:"status"`

@@ -10,10 +10,7 @@ import (
 
 const (
 	//Version version of the network daemon
-	Version = "0.21.1"
-
-	//DockerPath path of the docker binary
-	DockerPath = "/usr/local/bin/docker"
+	Version = "1.0.3"
 )
 
 //CompareArrays returns the elements that are in array1 and not in array2

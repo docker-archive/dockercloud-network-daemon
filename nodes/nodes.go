@@ -28,10 +28,6 @@ type PostForm struct {
 	Interfaces []dockercloud.Network `json:"private_ips"`
 }
 
-const (
-	Version = "1.0.3"
-)
-
 var (
 	//NodeAPIURI resource uri of the current node
 	NodeAPIURI = os.Getenv("DOCKERCLOUD_NODE_API_URI")
