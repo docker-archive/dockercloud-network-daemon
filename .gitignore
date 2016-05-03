@@ -40,3 +40,4 @@ nosetests.xml
 weave
 dockercloud-network-daemon
 .DS_Store
+docker.tgz

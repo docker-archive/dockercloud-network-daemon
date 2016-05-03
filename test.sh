@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+set -m
 CheckNetworkSetup ()
 {
     LOOP_LIMIT=120
@@ -36,6 +36,9 @@ fi
 
 DOCKER_BINARY=${DOCKER_BINARY:-"/usr/bin/docker"}
 
+echo "=> Building the image"
+docker build -t this .
+
 echo "=> Launching network-daemon"
 docker rm -f network-daemon >/dev/null 2>&1 || true
 docker run -d \
@@ -68,3 +71,6 @@ docker rm -f pingC >/dev/null 2>&1 || true
 docker run -d --name=pingC --net dockercloud --ip $IP3 dockercloud/hello-world
 docker exec -t pingC ping $IP1 -c 15
 docker exec -t pingC ping $IP2 -c 15
+
+kill %
+echo "=> Pass!"
