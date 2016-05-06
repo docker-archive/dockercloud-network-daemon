@@ -316,6 +316,13 @@ Loop:
 	for {
 		select {
 		case event := <-c:
+			if event.Type == "error" {
+				msg := event.Data.ErrorMessage
+				if msg == "Incorrect authentication credentials." || msg == "Unauthorized" || msg == "UNAUTHORIZED" {
+					log.Println("Not authorized. Retry in 1 hour")
+					time.Sleep(1 * time.Hour)
+				}
+			}
 			err := nodeEventHandler(event.Type, event.State, event.Action)
 			if err != nil {
 				log.Println(err)
@@ -385,6 +392,10 @@ func main() {
 		for {
 			node, err := dockercloud.GetNode(nodes.Node_Api_Uri)
 			if err != nil {
+				if err.Error() == "Failed API call: 401 Unauthorized" {
+					log.Println("Not authorized. Retry in 1 hour")
+					time.Sleep(1 * time.Hour)
+				}
 				tries++
 				log.Println(err)
 				time.Sleep(5 * time.Second)
