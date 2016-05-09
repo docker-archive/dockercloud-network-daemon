@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/docker/dockercloud-network-daemon/tools"
@@ -64,8 +66,8 @@ func sendData(url string, data []byte) error {
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		log.Printf("Send metrics failed: %s", resp.Status)
-		if resp.StatusCode >= 500 {
-			return errors.New(resp.Status)
+		if resp.StatusCode == 401 || resp.StatusCode >= 500 {
+			return errors.New(strconv.Itoa(resp.StatusCode))
 		}
 	}
 	return nil
@@ -79,6 +81,11 @@ func Send(url string, data []byte) {
 		if err == nil {
 			break
 		} else {
+			if err.Error() == "401" {
+				log.Println("Not authorized. Retry in 1 hour")
+				time.Sleep(1 * time.Hour)
+				break
+			}
 			if counter > 100 {
 				log.Println("Too many reties, give up")
 				break
@@ -228,6 +235,10 @@ func DiscoverPeers() error {
 	for {
 		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
+			if strings.TrimSpace(strings.ToLower(err.Error())) == "failed api call: 401 unauthorized" {
+				log.Println("Not authorized. Retry in 1 hour")
+				time.Sleep(1 * time.Hour)
+			}
 			if err.Error() == "Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY" {
 				return err
 			}
@@ -326,7 +337,6 @@ func connectToPeers(nodeIP string) error {
 	tries := 0
 Loop:
 	for {
-
 		log.Printf("[NODE DISCOVERY]: Connecting to newly discovered peer: %s", nodeIP)
 		cmd := exec.Command("/weave", "--local", "connect", nodeIP)
 		if output, err := cmd.CombinedOutput(); err != nil {
