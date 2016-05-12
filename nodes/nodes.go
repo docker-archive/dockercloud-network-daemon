@@ -66,7 +66,7 @@ func sendData(url string, data []byte) error {
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		log.Printf("Send metrics failed: %s", resp.Status)
-		if resp.StatusCode == 401 || resp.StatusCode >= 500 {
+		if resp.StatusCode == 401 || resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			return errors.New(strconv.Itoa(resp.StatusCode))
 		}
 	}
