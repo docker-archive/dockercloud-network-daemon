@@ -3,6 +3,7 @@ package main //import "github.com/docker/dockercloud-network-daemon"
 import (
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,6 +47,11 @@ Loop:
 			}
 			break
 		case err := <-e:
+			if strings.TrimSpace(strings.ToLower(err.Error())) == "401 unauthorized" {
+				log.Println(err.Error())
+				time.Sleep(1 * time.Hour)
+				break Loop
+			}
 			log.Println("[NODE DISCOVERY ERROR]: " + err.Error())
 			time.Sleep(10 * time.Second)
 			wg.Add(1)
@@ -78,6 +84,12 @@ func main() {
 		for {
 			node, err := dockercloud.GetNode(nodes.NodeAPIURI)
 			if err != nil {
+				if strings.TrimSpace(strings.ToLower(err.Error())) == "failed api call: 401 unauthorized" {
+					log.Println("Not authorized. Retry in 1 hour")
+					time.Sleep(1 * time.Hour)
+					break
+				}
+				log.Print(strings.ToLower(err.Error()))
 				if counter > 100 {
 					time.Sleep(time.Duration(counter) * time.Second)
 					counter = 0
