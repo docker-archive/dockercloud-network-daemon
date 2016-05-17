@@ -3,14 +3,11 @@ package nodes
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/docker/dockercloud-network-daemon/tools"
@@ -65,9 +62,9 @@ func sendData(url string, data []byte) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		log.Printf("Send metrics failed: %s", resp.Status)
+		log.Printf("Send data failed: %s", resp.Status)
 		if resp.StatusCode == 401 || resp.StatusCode == 429 || resp.StatusCode >= 500 {
-			return errors.New(strconv.Itoa(resp.StatusCode))
+			return dockercloud.HttpError{Status: resp.Status, StatusCode: resp.StatusCode}
 		}
 	}
 	return nil
@@ -81,7 +78,8 @@ func Send(url string, data []byte) {
 		if err == nil {
 			break
 		} else {
-			if err.Error() == "401" {
+			e, ok := err.(dockercloud.HttpError)
+			if ok && e.StatusCode == 401 {
 				log.Println("Not authorized. Retry in 1 hour")
 				time.Sleep(1 * time.Hour)
 				break
@@ -235,7 +233,8 @@ func DiscoverPeers() error {
 	for {
 		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
-			if strings.TrimSpace(strings.ToLower(err.Error())) == "failed api call: 401 unauthorized" {
+			e, ok := err.(dockercloud.HttpError)
+			if ok && e.StatusCode == 401 {
 				log.Println("Not authorized. Retry in 1 hour")
 				time.Sleep(1 * time.Hour)
 			}

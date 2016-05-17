@@ -47,7 +47,8 @@ Loop:
 			}
 			break
 		case err := <-e:
-			if strings.TrimSpace(strings.ToLower(err.Error())) == "401 unauthorized" {
+			e, ok := err.(dockercloud.HttpError)
+			if ok && e.StatusCode == 401 {
 				log.Println(err.Error())
 				time.Sleep(1 * time.Hour)
 				break Loop
@@ -84,7 +85,8 @@ func main() {
 		for {
 			node, err := dockercloud.GetNode(nodes.NodeAPIURI)
 			if err != nil {
-				if strings.TrimSpace(strings.ToLower(err.Error())) == "failed api call: 401 unauthorized" {
+				e, ok := err.(dockercloud.HttpError)
+				if ok && e.StatusCode == 401 {
 					log.Println("Not authorized. Retry in 1 hour")
 					time.Sleep(1 * time.Hour)
 					break
