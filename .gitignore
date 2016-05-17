@@ -39,4 +39,5 @@ nosetests.xml
 # binary
 weave
 dockercloud-network-daemon
+.DS_Store
 docker.tgz

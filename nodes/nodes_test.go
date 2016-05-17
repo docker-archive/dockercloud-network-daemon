@@ -31,17 +31,6 @@ func Test_CIDRToIP(t *testing.T) {
 	}
 }
 
-func Test_removeDuplicates(t *testing.T) {
-	a := []string{"192.168.130.23", "192.168.130.24", "192.168.130.23", "192.168.130.24", "192.168.130.22"}
-	a_without_duplicates := []string{"192.168.130.23", "192.168.130.24", "192.168.130.22"}
-
-	a = removeDuplicates(a)
-
-	if !testEq(a, a_without_duplicates) {
-		t.Error("Unexpected node ips list")
-	}
-}
-
 func Test_IsInPrivateRange(t *testing.T) {
 	IP1 := "159.8.238.60/16"
 	response1 := IsInPrivateRange(IP1)
@@ -65,45 +54,21 @@ func Test_IsInPrivateRange(t *testing.T) {
 }
 
 func Test_nodeAppendAWS(t *testing.T) {
-	Node_Public_Ip = "178.100.50.34"
+	NodePublicIP = "178.100.50.34"
 	Region = "/1/2/3"
-	Node_CIDR = []dockercloud.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
+	NodeCIDR = []dockercloud.Network{{Name: "eth0", CIDR: "192.168.130.23/24"}, {Name: "eth1", CIDR: "10.77.32.17/17"}}
 
 	os.Setenv("DOCKERCLOUD_PRIVATE_CIDR", "10.77.0.0/16")
 	nodeList := dockercloud.NodeListResponse{Objects: []dockercloud.Node{
 		{Uuid: "1", State: "Deployed", Region: "/1/2/3", Public_ip: "10.0.0.1", Private_ips: []dockercloud.Network{{Name: "eth0", CIDR: "10.77.250.17/17"}}},
 		{Uuid: "2", State: "Deployed", Region: "/1/2/2", Public_ip: "10.0.0.2", Private_ips: []dockercloud.Network{{Name: "eth0", CIDR: "10.77.32.16/17"}}}}}
 
-	node_public_ips, node_private_ips := NodeAppend(nodeList)
+	NodePublicIPs, nodePrivateIps := NodeAppend(nodeList)
 
 	expectedList := []string{"10.0.0.2"}
 	expectedListPrivate := []string{"10.77.250.17"}
 
-	if !testEq(node_public_ips, expectedList) && !testEq(node_private_ips, expectedListPrivate) {
+	if !testEq(NodePublicIPs, expectedList) && !testEq(nodePrivateIps, expectedListPrivate) {
 		t.Error("Unexpected node ips list")
-	}
-}
-
-func Test_compareNodePeer(t *testing.T) {
-	var diff1 []string
-	var diff2 []string
-
-	node_ips := []string{`10.0.0.1`, `10.0.0.2`, `10.0.0.3`, `10.0.0.4`}
-	node_ips2 := []string{`10.0.0.1`, `10.0.0.3`, `10.0.0.4`}
-	peer_ips := []string{`10.0.0.2`}
-
-	diff1 = compareNodePeer(node_ips, peer_ips, diff1)
-
-	expectedNodeList := []string{`10.0.0.1`, `10.0.0.3`, `10.0.0.4`}
-
-	if !testEq(diff1, expectedNodeList) {
-		t.Error("Unexpected node ips list")
-	}
-
-	diff2 = compareNodePeer(peer_ips, node_ips2, diff2)
-
-	expectedPeerList := []string{`10.0.0.2`}
-	if !testEq(diff2, expectedPeerList) {
-		t.Error("Unexpected peer ips list")
 	}
 }

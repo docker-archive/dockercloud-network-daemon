@@ -1,8 +1,0 @@
-#!/bin/bash
-docker rm -f sut || true
-docker run -d -v $(pwd):/app --privileged -w "/app" -e DOCKER_BINARY=/tmp/docker/docker --name sut docker:1.11.1-dind
-sleep 5
-docker exec sut apk add --update bash
-docker exec sut curl https://get.docker.com/builds/Linux/i386/docker-1.11.1.tgz -o docker.tgz
-docker exec sut tar zxvf docker.tgz -C /tmp
-docker exec sut ./test.sh
