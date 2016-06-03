@@ -3,97 +3,44 @@ package nodes
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
+	"github.com/docker/dockercloud-network-daemon/tools"
 	"github.com/docker/go-dockercloud/dockercloud"
+	"github.com/getsentry/raven-go"
 )
 
+//NodeNetwork type
 type NodeNetwork struct {
-	Public_Ip string
-	cidrs     []dockercloud.Network
-	region    string
+	PublicIP string
+	cidrs    []dockercloud.Network
+	region   string
 }
 
+//PostForm type contains the interfaces of the current node to be PATCHed
 type PostForm struct {
 	Interfaces []dockercloud.Network `json:"private_ips"`
 }
 
-const (
-	Version = "1.0.3"
-)
-
 var (
-	Node_Api_Uri    = os.Getenv("DOCKERCLOUD_NODE_API_URI")
-	Node_Public_Ip  = ""
-	Node_CIDR       = []dockercloud.Network{}
-	Node_Uuid       = ""
-	Region          = ""
-	peer_ips        = []string{}
-	peer_ips_public = []string{}
+	//NodeAPIURI resource uri of the current node
+	NodeAPIURI = os.Getenv("DOCKERCLOUD_NODE_API_URI")
+	//NodePublicIP public IP of the current node
+	NodePublicIP = ""
+	//NodeCIDR private IPs of the current node
+	NodeCIDR = []dockercloud.Network{}
+	//NodeUUID UUID of the current node
+	NodeUUID = ""
+	//Region region of the current node
+	Region        = ""
+	peerIps       = []string{}
+	peerIpsPublic = []string{}
 )
-
-func removeDuplicates(elements []string) []string {
-	encountered := map[string]bool{}
-	result := []string{}
-
-	for v := range elements {
-		if encountered[elements[v]] == true {
-			// Do not add duplicate.
-		} else {
-			encountered[elements[v]] = true
-			result = append(result, elements[v])
-		}
-	}
-	return result
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func getInterfaces() []dockercloud.Network {
-	rawInterfaces, err := net.Interfaces()
-	if err != nil {
-		log.Fatalf("Cannot get network interfaces: %s", err.Error())
-	}
-
-	ifs := make([]dockercloud.Network, 0, 0)
-	for _, iface := range rawInterfaces {
-		name := strings.ToLower(iface.Name)
-		addrs, err := iface.Addrs()
-		if err != nil {
-			log.Printf("Cannot get address from interface %s: %s", iface.Name, err.Error())
-			continue
-		}
-		log.Printf("Found interface %s: %s", name, addrs)
-
-		var cidr string
-
-		if !contains([]string{"docker0", "weave", "lo"}, name) {
-			for _, addr := range addrs {
-				cidr = addr.String()
-				if strings.ContainsAny(cidr, "abcdef:") {
-					continue
-				}
-
-				ifs = append(ifs, dockercloud.Network{Name: name, CIDR: cidr})
-			}
-		}
-	}
-	return ifs
-}
 
 func sendData(url string, data []byte) error {
 	httpClient := &http.Client{}
@@ -106,7 +53,7 @@ func sendData(url string, data []byte) error {
 	if dcAuth != "" {
 		req.Header.Add("Authorization", dcAuth)
 	}
-	req.Header.Add("User-Agent", "network-daemon/"+Version)
+	req.Header.Add("User-Agent", "network-daemon/"+tools.Version)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -115,14 +62,15 @@ func sendData(url string, data []byte) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
-		log.Printf("Send metrics failed: %s", resp.Status)
-		if resp.StatusCode >= 500 {
-			return errors.New(resp.Status)
+		log.Printf("Send data failed: %s", resp.Status)
+		if resp.StatusCode == 401 || resp.StatusCode == 429 || resp.StatusCode >= 500 {
+			return dockercloud.HttpError{Status: resp.Status, StatusCode: resp.StatusCode}
 		}
 	}
 	return nil
 }
 
+//Send sends PATCH request on the database to update the current node with its private IPs
 func Send(url string, data []byte) {
 	counter := 1
 	for {
@@ -130,6 +78,12 @@ func Send(url string, data []byte) {
 		if err == nil {
 			break
 		} else {
+			e, ok := err.(dockercloud.HttpError)
+			if ok && e.StatusCode == 401 {
+				log.Println("Not authorized. Retry in 1 hour")
+				time.Sleep(1 * time.Hour)
+				break
+			}
 			if counter > 100 {
 				log.Println("Too many reties, give up")
 				break
@@ -142,48 +96,35 @@ func Send(url string, data []byte) {
 	}
 }
 
+//PostInterfaceData triggers Send function
 func PostInterfaceData(url string) {
-	interfaces := getInterfaces()
-	Node_CIDR = interfaces
+	interfaces := tools.GetInterfaces()
+	NodeCIDR = interfaces
 
 	data := PostForm{Interfaces: interfaces}
 	json, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("Cannot marshal the interface data: %v\n", data)
+		log.Printf("Cannot marshal the interface data: %v\n", data)
 	}
 
 	log.Printf("Posting to %s with %s", url, string(json))
 	Send(url, json)
 }
 
-func compareNodePeer(array1, array2, diff []string) []string {
-	for _, s1 := range array1 {
-		found := false
-		for _, s2 := range array2 {
-			if s1 == s2 {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, s1)
-		}
-	}
-	return diff
-}
-
+//CIDRToIP converts array of CIDRs to array of IPs
 func CIDRToIP(array []string) []string {
-	IpArray := []string{}
+	ipArray := []string{}
 	for _, elem := range array {
 		IP, _, err := net.ParseCIDR(elem)
 		if err != nil {
 			log.Println(err)
 		}
-		IpArray = append(IpArray, IP.String())
+		ipArray = append(ipArray, IP.String())
 	}
-	return IpArray
+	return ipArray
 }
 
+//IsInPrivateRange check if the requested CIDR is in the private IP range
 func IsInPrivateRange(cidr string) bool {
 	ip, _, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -212,6 +153,7 @@ func IsInPrivateRange(cidr string) bool {
 	return false
 }
 
+//CheckIfSameNetwork returns true if one of the CIDR contains the other, otherwise returns false
 func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 	ip1, ipNet1, err1 := net.ParseCIDR(cidr1)
 	if err1 != nil {
@@ -225,20 +167,20 @@ func CheckIfSameNetwork(cidr1 string, cidr2 string) bool {
 
 	if ipNet1.Contains(ip2) || ipNet2.Contains(ip1) {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
+//NodeAppend returns the list of Public and Private IPs
 func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 	networkAvailable := make(map[string]NodeNetwork)
-	node_public_ips := []string{}
-	node_private_ips := []string{}
+	NodePublicIPs := []string{}
+	nodePrivateIps := []string{}
 
 	for i := range nodeList.Objects {
 		state := nodeList.Objects[i].State
 		if state == "Deployed" || state == "Unreachable" {
-			networkAvailable[nodeList.Objects[i].Uuid] = NodeNetwork{cidrs: nodeList.Objects[i].Private_ips, Public_Ip: nodeList.Objects[i].Public_ip, region: nodeList.Objects[i].Region}
+			networkAvailable[nodeList.Objects[i].Uuid] = NodeNetwork{cidrs: nodeList.Objects[i].Private_ips, PublicIP: nodeList.Objects[i].Public_ip, region: nodeList.Objects[i].Region}
 		}
 	}
 
@@ -248,173 +190,162 @@ func NodeAppend(nodeList dockercloud.NodeListResponse) ([]string, []string) {
 		if len(value.cidrs) > 0 {
 			for _, networkAvailableCIDR := range value.cidrs {
 			Loop1:
-				for _, network := range Node_CIDR {
+				for _, network := range NodeCIDR {
 					if networkAvailableCIDR.CIDR != network.CIDR && IsInPrivateRange(networkAvailableCIDR.CIDR) && IsInPrivateRange(network.CIDR) {
 						if os.Getenv("DOCKERCLOUD_PRIVATE_CIDR") != "" {
 							if value.region == Region && CheckIfSameNetwork(os.Getenv("DOCKERCLOUD_PRIVATE_CIDR"), networkAvailableCIDR.CIDR) {
-								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
+								temp1 = append(nodePrivateIps, networkAvailableCIDR.CIDR)
 								break Loop1
 							}
 						} else {
 							if CheckIfSameNetwork(network.CIDR, networkAvailableCIDR.CIDR) {
-								temp1 = append(node_private_ips, networkAvailableCIDR.CIDR)
+								temp1 = append(nodePrivateIps, networkAvailableCIDR.CIDR)
 								break Loop1
 							}
 						}
 					}
 				}
-				if len(temp1) == 0 && value.Public_Ip != Node_Public_Ip {
-					node_public_ips = append(node_public_ips, value.Public_Ip)
+				if len(temp1) == 0 && value.PublicIP != NodePublicIP {
+					NodePublicIPs = append(NodePublicIPs, value.PublicIP)
 				} else {
 					temp = append(temp, temp1...)
 				}
 			}
 		} else {
-			if value.Public_Ip != Node_Public_Ip {
-				node_public_ips = append(node_public_ips, value.Public_Ip)
+			if value.PublicIP != NodePublicIP {
+				NodePublicIPs = append(NodePublicIPs, value.PublicIP)
 			}
 		}
 	}
 	if len(temp) > 0 {
-		node_private_ips = append(node_private_ips, temp...)
+		nodePrivateIps = append(nodePrivateIps, temp...)
 	}
 
-	node_private_ips = CIDRToIP(node_private_ips)
-	return removeDuplicates(node_public_ips), removeDuplicates(node_private_ips)
+	nodePrivateIps = CIDRToIP(nodePrivateIps)
+	return tools.RemoveDuplicates(NodePublicIPs), tools.RemoveDuplicates(nodePrivateIps)
 }
 
+//DiscoverPeers queries DockerCloud API for the list of nodes and checks if nodes must be attached or forgotten
 func DiscoverPeers() error {
 	tries := 0
+	counter := 1
 	log.Println("[NODE DISCOVERY STARTED]")
 	for {
 		nodeList, err := dockercloud.ListNodes()
 		if err != nil {
-			time.Sleep(60 * time.Second)
-			return err
-		}
+			e, ok := err.(dockercloud.HttpError)
+			if ok && e.StatusCode == 401 {
+				log.Println("Not authorized. Retry in 1 hour")
+				time.Sleep(1 * time.Hour)
+			}
+			if err.Error() == "Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY" {
+				return err
+			}
+			if counter > 100 {
+				log.Println("Too many retries, give up")
+				return err
+			}
+			counter *= 2
+			log.Printf("%s: Retry in %d seconds", err, counter)
+			time.Sleep(time.Duration(counter) * time.Second)
+		} else {
+			if len(nodeList.Objects) == 0 {
+				return nil
+			}
 
-		if len(nodeList.Objects) == 0 {
-			return nil
-		}
+			NodePublicIPs, nodePrivateIps := NodeAppend(nodeList)
 
-		node_public_ips, node_private_ips := NodeAppend(nodeList)
+			log.Println("[NODE DISCOVERY]: Current nodes available")
+			log.Printf("Private Network: %s", nodePrivateIps)
+			log.Printf("Public Network: %s", NodePublicIPs)
 
-		log.Println("[NODE DISCOVERY]: Current nodes available")
-		log.Printf("Private Network: %s", node_private_ips)
-		log.Printf("Public Network: %s", node_public_ips)
+			var diff1 []string
 
-		var diff1 []string
+			//Checking if there are nodes that are not in the peerIps list
+			diff1 = tools.CompareArrays(nodePrivateIps, peerIps, diff1)
 
-		//Checking if there are nodes that are not in the peer_ips list
-		diff1 = compareNodePeer(node_private_ips, peer_ips, diff1)
-
-		for _, i := range diff1 {
-			err := connectToPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff1 {
+				err := connectToPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		var diff3 []string
+			var diff3 []string
 
-		//Checking if there are nodes that are not in the peer_ips list
+			//Checking if there are nodes that are not in the peerIps list
 
-		diff3 = compareNodePeer(node_public_ips, peer_ips_public, diff3)
+			diff3 = tools.CompareArrays(NodePublicIPs, peerIpsPublic, diff3)
 
-		for _, i := range diff3 {
-			err := connectToPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff3 {
+				err := connectToPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		//IF TERMINATED EVENT
-		var diff2 []string
+			//IF TERMINATED EVENT
+			var diff2 []string
 
-		//Checking if there are peers that are not in the node_private_ips list
-		diff2 = compareNodePeer(peer_ips, node_private_ips, diff2)
+			//Checking if there are peers that are not in the nodePrivateIps list
+			diff2 = tools.CompareArrays(peerIps, nodePrivateIps, diff2)
 
-		for _, i := range diff2 {
-			err := forgetPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff2 {
+				err := forgetPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		var diff4 []string
+			var diff4 []string
 
-		//Checking if there are peers that are not in the node_private_ips list
-		diff4 = compareNodePeer(peer_ips_public, node_public_ips, diff4)
+			//Checking if there are peers that are not in the nodePrivateIps list
+			diff4 = tools.CompareArrays(peerIpsPublic, NodePublicIPs, diff4)
 
-		for _, i := range diff4 {
-			err := forgetPeers(i)
-			if err != nil {
-				tries++
-				if tries > 3 {
-					return err
+			for _, i := range diff4 {
+				err := forgetPeers(i)
+				if err != nil {
+					tries++
+					if tries > 3 {
+						return err
+					}
 				}
 			}
-		}
 
-		peer_ips = node_private_ips
-		peer_ips_public = node_public_ips
-		break
+			peerIps = nodePrivateIps
+			peerIpsPublic = NodePublicIPs
+			break
+		}
 	}
 
 	log.Println("[NODE DISCOVERY STOPPED]")
 	return nil
 }
 
-func connectToPeers(node_ip string) error {
+func connectToPeers(nodeIP string) error {
 	log.Println("[NODE DISCOVERY UPDATE]: Some nodes are not peers")
 	tries := 0
 Loop:
 	for {
-
-		log.Printf("[NODE DISCOVERY]: Connecting to newly discovered peer: %s", node_ip)
-		cmd := exec.Command("/weave", "--local", "connect", node_ip)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
+		log.Printf("[NODE DISCOVERY]: Connecting to newly discovered peer: %s", nodeIP)
+		cmd := exec.Command("/weave", "--local", "connect", nodeIP)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			packet := raven.Packet{Message: "Node Connect failed", Extra: map[string]interface{}{"output": string(output)}, Release: tools.Version}
+			raven.Capture(&packet, map[string]string{"type": "nodeConnect", "nodeURI": NodeAPIURI})
 			tries++
 			time.Sleep(2 * time.Second)
+			log.Println("[NODE DISCOVERY ERROR]: Unable to 'weave connect':", err, string(output))
 			if tries > 3 {
-				return err
-			}
-		}
-
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Start(); err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Wait(); err != nil {
-			log.Printf("%s: %s %s", node_ip, stdout, stderr)
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave connect: %s %s", stdout, stderr)
-				return err
+				break Loop
 			}
 		} else {
 			break Loop
@@ -424,46 +355,21 @@ Loop:
 	return nil
 }
 
-func forgetPeers(node_ip string) error {
+func forgetPeers(nodeIP string) error {
 	log.Println("[NODE DISCOVERY UPDATE]: Some peers are not nodes anymore")
 	tries := 0
 Loop:
 	for {
-		log.Printf("[NODE DISCOVERY]: Forgetting peer: %s", node_ip)
-		cmd := exec.Command("/weave", "--local", "forget", node_ip)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
+		log.Printf("[NODE DISCOVERY]: Forgetting peer: %s", nodeIP)
+		cmd := exec.Command("/weave", "--local", "forget", nodeIP)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			packet := raven.Packet{Message: "Node Forget failed", Extra: map[string]interface{}{"output": string(output)}, Release: tools.Version}
+			raven.Capture(&packet, map[string]string{"type": "nodeForget", "nodeURI": NodeAPIURI})
 			tries++
 			time.Sleep(2 * time.Second)
+			log.Println("[NODE DISCOVERY ERROR]: Unable to 'weave forget':", err, string(output))
 			if tries > 3 {
-				return err
-			}
-		}
-
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Start(); err != nil {
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				return err
-			}
-		}
-
-		if err := cmd.Wait(); err != nil {
-			log.Printf("CMD ERRO : %s: %s %s", node_ip, stdout, stderr)
-			tries++
-			time.Sleep(2 * time.Second)
-			if tries > 3 {
-				log.Printf("[NODE DISCOVERY ERROR]: Unable to 'weave forget: %s %s", stdout, stderr)
-				return err
+				break Loop
 			}
 		} else {
 			break Loop
