@@ -60,7 +60,7 @@ echo "=> Launching weave pluggin container"
 NETWORK_CREATED=`docker network ls | grep -c ${WEAVEMESH_NETWORK} || true`
 if [ "${NETWORK_CREATED}" = "0" ]; then
     echo "=> Creating weavemesh network: ${WEAVEMESH_NETWORK}"
-    docker network create --driver weavemesh --subnet 10.7.0.0/16 ${WEAVEMESH_NETWORK}
+    docker network create --driver weavemesh --subnet 10.7.0.0/16 --ipam-driver weavemesh ${WEAVEMESH_NETWORK}
 else
     echo "=> Weavemesh network(${WEAVEMESH_NETWORK}) exists"
 fi
