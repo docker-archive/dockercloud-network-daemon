@@ -43,7 +43,7 @@ else
         echo "=> Running: weave launch ${WEAVE_LAUNCH}"
         echo "=> Peer count: ${DOCKERCLOUD_PEER_COUNT}"
     fi
-    /weave --local launch-router --conn-limit=0 --ipalloc-range=10.128.0.0/10 --trusted-subnets=${TRUSTED_SUBNETS} --no-dns --no-discovery --init-peer-count=${DOCKERCLOUD_PEER_COUNT} ${WEAVE_EXTRA_ARGS} ${WEAVE_LAUNCH} || true
+    /weave --local launch-router --conn-limit=0 --ipalloc-range=10.128.0.0/10 --trusted-subnets=${TRUSTED_SUBNETS} --no-dns --no-discovery --ipalloc-init consensus=${DOCKERCLOUD_PEER_COUNT} ${WEAVE_EXTRA_ARGS} ${WEAVE_LAUNCH} || true
     sleep 2
 fi
 
