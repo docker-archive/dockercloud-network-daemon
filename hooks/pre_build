@@ -6,3 +6,7 @@ docker run --privileged \
   -v /var/run/docker.sock:/var/run/docker.sock \
   centurylink/golang-builder \
   dockercloud-network-daemon
+cp dockercloud-network-daemon 1.9.1-cs2/
+cp dockercloud-network-daemon 1.11.1-cs1/
+cp run.sh 1.9.1-cs2/
+cp run.sh 1.11.1-cs1/

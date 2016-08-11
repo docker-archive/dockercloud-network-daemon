@@ -41,3 +41,5 @@ weave
 dockercloud-network-daemon
 .DS_Store
 docker.tgz
+1.9.1-cs2/run.sh
+1.11.1-cs1/run.sh
