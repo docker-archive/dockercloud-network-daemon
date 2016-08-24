@@ -1,6 +1,6 @@
 FROM alpine:edge
 
-ENV VERSION=1.5.2 \
+ENV VERSION=1.6.1 \
     DOCKERCLOUD_PEER_COUNT=1 \
     WEAVE_DOCKER_ARGS="-e LOGSPOUT=ignore" \
     WEAVEMESH_NETWORK=dockercloud
