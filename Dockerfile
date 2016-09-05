@@ -9,7 +9,7 @@ RUN apk add --update ethtool conntrack-tools curl iptables iproute2 util-linux b
 
 # Download docker statically linked binary
 ADD https://files.cloud.docker.com/packages/docker/docker-$DOCKER_VERSION.tgz /tmp/
-RUN tar zxf /tmp/docker-$DOCKER_VERSION.tgz -C /usr/bin/ --strip-components 1
+RUN tar zxf /tmp/docker-$DOCKER_VERSION.tgz -C /usr/local/bin/ --strip-components 1
 
 # Download weave
 ADD https://github.com/weaveworks/weave/releases/download/v$VERSION/weave /weave
