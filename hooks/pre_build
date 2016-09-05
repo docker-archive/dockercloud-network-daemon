@@ -1,4 +1,8 @@
 #!/bin/bash
 set -e
-REPO_PATH="github.com/docker/dockercloud-network-daemon"
-docker run --rm -v $(pwd):/go/src/${REPO_PATH}/ -w /go/src/${REPO_PATH}/ golang:1.6 sh -c "go get -v && go build -v -o dockercloud-network-daemon"
+echo "=> Building the binary"
+docker run --privileged \
+  -v $(pwd):/src \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  centurylink/golang-builder \
+  dockercloud-network-daemon
