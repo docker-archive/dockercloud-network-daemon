@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 REPO_PATH="github.com/docker/dockercloud-network-daemon"
-docker run --rm -v $(pwd):/go/src/${REPO_PATH}/ -w /go/src/${REPO_PATH}/ golang:1.6 sh -c "go get -v && go build -v -o /go/src/${REPO_PATH}/dockercloud-network-daemon"
+docker run --rm -v $(pwd):/go/src/${REPO_PATH}/ -w /go/src/${REPO_PATH}/ golang:1.6 sh -c "go get -t -d -v ./... && CGO_ENABLED=0 go build -a -v --ldflags=\"${LDFLAGS:--s}\" -o /go/src/${REPO_PATH}/dockercloud-network-daemon"
