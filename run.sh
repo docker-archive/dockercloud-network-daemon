@@ -22,6 +22,8 @@ else
 
         echo "=> Stopping weave on the node"
         /weave --local stop || true
+        docker rm -f weave || true
+        docker rm -f weave-plugin || true
     else
         echo "=> Weave router:${VERSION} container found"
     fi
