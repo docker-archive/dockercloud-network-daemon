@@ -10,8 +10,8 @@ if [ "${WEAVE_LAUNCH}" = "**None**" ]; then
     # For local dev and testing
     echo "WEAVE_LAUNCH is **None**. Not running 'weave launch'"
 else
-    ROUTER_PRESENT=`docker ps -a | grep -c "weave:" || true`
-    ROUTER_PRESENT_SAME_VERSION=`docker ps -a | grep -c "weave:${VERSION}" || true`
+    ROUTER_PRESENT=`docker ps -a | grep -c "weaveworks/weave:" || true`
+    ROUTER_PRESENT_SAME_VERSION=`docker ps -a | grep -c "weaveworks/weave:${VERSION}" || true`
     if [ "${ROUTER_PRESENT_SAME_VERSION}" = "0" ]; then
         echo "=> Weave router:${VERSION} container not found"
         WEAVE_IMAGES=`docker images | grep -c "weaveworks/weave:${VERSION}" || true`
@@ -23,7 +23,7 @@ else
         echo "=> Stopping weave on the node"
         /weave --local stop || true
         docker rm -f weave || true
-        docker rm -f weave-plugin || true
+        docker rm -f weaveplugin || true
     else
         echo "=> Weave router:${VERSION} container found"
     fi
@@ -59,10 +59,14 @@ echo "=> Current weave router status"
 
 echo "=> Running weave expose"
 /weave --local expose 10.7.255.254/16
-docker ps | grep -q "weave:${VERSION}"
 
 echo "=> Launching weave plugin container"
 /weave --local launch-plugin
+sleep 2
+
+echo "=> Checking if the weave router and plugin are running"
+docker ps | grep -q "weaveworks/weave:${VERSION}"
+docker ps | grep -q "weaveworks/plugin:${VERSION}"
 
 NETWORK_CREATED=`docker network ls | grep -c ${WEAVEMESH_NETWORK} || true`
 if [ "${NETWORK_CREATED}" = "0" ]; then
