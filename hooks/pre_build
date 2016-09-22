@@ -1,8 +1,4 @@
 #!/bin/bash
 set -e
-echo "=> Building the binary"
-docker run --privileged \
-  -v $(pwd):/src \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  centurylink/golang-builder \
-  dockercloud-network-daemon
+REPO_PATH="github.com/docker/dockercloud-network-daemon"
+docker run --rm -v $(pwd):/go/src/${REPO_PATH}/ -w /go/src/${REPO_PATH}/ golang:1.6 sh -c "go get -t -d -v ./... && CGO_ENABLED=0 go build -a -v --ldflags=\"${LDFLAGS:--s}\" -o /go/src/${REPO_PATH}/dockercloud-network-daemon"
