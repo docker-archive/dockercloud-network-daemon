@@ -56,7 +56,7 @@ else
 fi
 
 echo "=> Launching weave proxy container"
-/weave --local launch-proxy
+/weave --local launch-proxy || true
 sleep 2
 
 echo "=> Current weave router status"
