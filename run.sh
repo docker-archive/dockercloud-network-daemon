@@ -24,6 +24,7 @@ else
         /weave --local stop || true
         docker rm -f weave || true
         docker rm -f weaveplugin || true
+        docker rm -f weaveproxy || true
     else
         echo "=> Weave router:${VERSION} container found"
     fi
@@ -54,6 +55,10 @@ else
     sleep 2
 fi
 
+echo "=> Launching weave proxy container"
+/weave --local launch-proxy
+sleep 2
+
 echo "=> Current weave router status"
 /weave --local status
 
@@ -64,9 +69,10 @@ echo "=> Launching weave plugin container"
 /weave --local launch-plugin
 sleep 2
 
-echo "=> Checking if the weave router and plugin are running"
+echo "=> Checking if the weave router, plugin and proxy are running"
 docker ps | grep -q "weaveworks/weave:${VERSION}"
 docker ps | grep -q "weaveworks/plugin:${VERSION}"
+docker ps | grep -q "weaveworks/weaveexec:${VERSION}"
 
 NETWORK_CREATED=`docker network ls | grep -c ${WEAVEMESH_NETWORK} || true`
 if [ "${NETWORK_CREATED}" = "0" ]; then
