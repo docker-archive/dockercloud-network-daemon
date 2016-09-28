@@ -91,7 +91,7 @@ func GetInterfaces() []dockercloud.Network {
 
 		var cidr string
 
-		if !contains([]string{"docker0", "weave", "lo"}, name) {
+		if !contains([]string{"docker0", "docker_gwbridge", "weave", "lo"}, name) {
 			for _, addr := range addrs {
 				cidr = addr.String()
 				if strings.ContainsAny(cidr, "abcdef:") {
