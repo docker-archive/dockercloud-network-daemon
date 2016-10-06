@@ -17,6 +17,6 @@ ADD https://github.com/weaveworks/weave/releases/download/v$VERSION/weave /weave
 # Add network daemon binary and scripts
 ADD dockercloud-network-daemon /
 RUN chmod +x dockercloud-network-daemon weave
-ADD run.sh /
+ADD *.sh /
 
 ENTRYPOINT ["/run.sh"]
