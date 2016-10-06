@@ -76,6 +76,7 @@ else
     echo "=> Weavemesh network(${WEAVEMESH_NETWORK}) exists"
 fi
 
+echo "=> Starting containers with autorestart activated that failed to automatically start"
 /restart_failed_containers.sh
 
 if [ -n "${NO_PEER_DISCOVERY}" ]; then
