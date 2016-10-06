@@ -10,7 +10,7 @@ import (
 
 const (
 	//Version version of the network daemon
-	Version = "1.2.1"
+	Version = "1.2.2"
 )
 
 //CompareArrays returns the elements that are in array1 and not in array2
