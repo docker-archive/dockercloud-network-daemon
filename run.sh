@@ -76,6 +76,7 @@ else
     echo "=> Weavemesh network(${WEAVEMESH_NETWORK}) exists"
 fi
 
+/restart_failed_containers.sh
 
 if [ -n "${NO_PEER_DISCOVERY}" ]; then
     docker logs -f weave
