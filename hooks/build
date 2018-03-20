@@ -1,7 +1,0 @@
-#!/bin/sh
-if [ ! -z "${DOCKER_TAG}" ] && [ "${DOCKER_TAG}" != "this" ]; then
-	echo "Using DOCKER_VERSION=$DOCKER_TAG"
-	docker build --build-arg DOCKER_VERSION=$DOCKER_TAG -t $IMAGE_NAME .
-else
-	docker build -t $IMAGE_NAME .
-fi

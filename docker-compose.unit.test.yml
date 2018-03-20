@@ -1,6 +1,0 @@
-sut:
-  image: golang:latest
-  working_dir: /go/src/github.com/docker/dockercloud-network-daemon
-  command: bash -c "go get -v && go test -v ./... -race"
-  volumes:
-    - ".:/go/src/github.com/docker/dockercloud-network-daemon"

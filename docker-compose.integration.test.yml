@@ -1,9 +1,0 @@
-sut:
-  image: docker:1.11.1-dind
-  volumes:
-    - ".:/app"
-  privileged: true
-  working_dir: /app
-  environment:
-    - DOCKER_BINARY=/tmp/docker/docker
-  command: sh -c 'sh -c "dockerd-entrypoint.sh & " && apk add --update bash && curl https://get.docker.com/builds/Linux/i386/docker-1.11.1.tgz -o docker.tgz && tar zxvf docker.tgz -C /tmp && ./test.sh'
